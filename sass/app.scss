@@ -1,0 +1,8 @@
+$square-size: 100px;
+$board-size: $square-size * 8;
+
+
+canvas #board {
+    width: $board-size;
+    height: $board-size;
+}
