@@ -1,8 +1,8 @@
-$square-size: 100px;
+$square-size: 50px;
 $board-size: $square-size * 8;
 
-
-canvas #board {
+checkers-board {
+    display: flex;
     width: $board-size;
     height: $board-size;
 }

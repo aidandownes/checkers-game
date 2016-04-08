@@ -1,3 +1,4 @@
-canvas #board {
-  width: 800px;
-  height: 800px; }
+checkers-board {
+  display: flex;
+  width: 400px;
+  height: 400px; }
