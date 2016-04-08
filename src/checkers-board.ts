@@ -1,16 +1,6 @@
-/// <reference path="../typings/browser.d.ts" />
-
-export const CheckersModule = angular.module('Checkers', []);
+import {Checkers, Piece, BoardSquare, Color, ROW_LENGTH, COLUMN_LENGTH} from './checkers-service';
 
 const SQUARE_SIZE = 50;
-const ROW_LENGTH = 8;
-const COLUMN_LENGTH = 8;
-
-export enum Color {
-    Black,
-    Red,
-    White
-}
 
 function toColorString(color: Color) {
     switch (color) {
@@ -25,82 +15,17 @@ function toColorString(color: Color) {
     }
 }
 
-export interface BoardSquare {
-    row: number;
-    column: number;
-}
 
-export interface Piece {
-    square: BoardSquare;
-    color: Color;
-    isKing: boolean;
-    isDragTarget: boolean;
-    dragPosition: Position;
-}
-
-export interface Position {
+interface Position {
     x: number;
     y: number;
 }
 
-function* getPossiblePositions(): Iterable<BoardSquare> {
-    for (let i = 0; i < ROW_LENGTH; i++) {
-        for (let j = 0; j < COLUMN_LENGTH; j++) {
-            if (i % 2 == j % 2) {
-                yield { row: i, column: j };
-            }
-        }
-    }
-}
-
-
-
-export class Checkers {
-    pieces: Piece[];
-    currentPlayer: Color;
-
-    constructor() {
-        this.pieces = new Array();
-        this.initializePieces();
-        this.currentPlayer = Color.White;
-    }
-
-    private initializePieces() {
-        const isKing = false;
-        const isDragTarget = false;
-        const dragPosition = { x: 0, y: 0 };
-        const addPiece = (square: BoardSquare, color: Color) => {
-            this.pieces.push({ square, color, isKing, isDragTarget, dragPosition });
-        };
-
-        for (let pos of getPossiblePositions()) {
-            if (pos.row < 3) {
-                addPiece(pos, Color.White);
-            } else if (pos.row > 4) {
-                addPiece(pos, Color.Black);
-            }
-        }
-    }
-
-    getPieceAtSquare(square: BoardSquare): Piece {
-        return this.pieces.find(p => {
-            return p.square.column == square.column &&
-                p.square.row == square.row;
-        });
-    }
-}
-
-export class CheckersProvider {
-
-    $get($injector: ng.auto.IInjectorService) {
-        return $injector.instantiate(Checkers);
-    }
-}
-
-
 class CheckersBoardController {
     ctx: CanvasRenderingContext2D;
     canvas: ng.IAugmentedJQuery;
+    dragTarget: Piece;
+    dragPosition: Position;
 
     constructor(private checkers: Checkers, private $element: ng.IAugmentedJQuery,
         private $window: ng.IWindowService, private $timeout: ng.ITimeoutService,
@@ -128,33 +53,30 @@ class CheckersBoardController {
         let p = this.getMousePosition(ev);
         let sq = this.getBoardSquare(p);
         let clickedPiece = this.checkers.getPieceAtSquare(sq);
-        this.$log.debug(`Position ${JSON.stringify(p)}; 
-            Square ${JSON.stringify(sq)}; 
-            Piece ${JSON.stringify(clickedPiece)}`);
 
         if (clickedPiece && clickedPiece.color == this.checkers.currentPlayer) {
-            clickedPiece.isDragTarget = true;
-            clickedPiece.dragPosition = p;
+            this.dragTarget = clickedPiece;
+            this.dragPosition = p;
             
-            this.canvas.on('mousemove', this.handleMouseMove.bind(this, clickedPiece));
-            this.canvas.on('mouseup', this.handleMouseUp.bind(this, clickedPiece));
+            this.canvas.on('mousemove', this.handleMouseMove.bind(this));
+            this.canvas.on('mouseup', this.handleMouseUp.bind(this));
             this.render();
         }
     }
     
-    private handleMouseMove(clickedPiece:Piece, ev:JQueryEventObject) {
+    private handleMouseMove(ev:JQueryEventObject) {
         let p = this.getMousePosition(ev);
-        clickedPiece.dragPosition = p;
+        this.dragPosition = p;
         this.render();
     }
     
-    private handleMouseUp(clickedPiece:Piece, ev:JQueryEventObject) {
+    private handleMouseUp(ev:JQueryEventObject) {
         let p = this.getMousePosition(ev);
         let sq = this.getBoardSquare(p);
         
-        clickedPiece.square = sq;
-        clickedPiece.isDragTarget = false;
-        clickedPiece.dragPosition = p;
+        this.dragTarget.square = sq;
+        this.dragTarget = <Piece>null;
+        this.dragPosition = <Position>null;
         
         this.canvas.off('mousemove');
         this.canvas.off('mouseup');
@@ -176,10 +98,10 @@ class CheckersBoardController {
         return { row, column };
     }
 
-    private drawPiece(piece: Piece) {
+    private drawPiece(piece: Piece, position?:Position) {
         const halfSquare = (SQUARE_SIZE * 0.5);
-        const x = piece.isDragTarget? piece.dragPosition.x: piece.square.column * SQUARE_SIZE + halfSquare;
-        const y = piece.isDragTarget? piece.dragPosition.y: piece.square.row * SQUARE_SIZE + halfSquare;
+        const x = (position && position.x) || piece.square.column * SQUARE_SIZE + halfSquare;
+        const y = (position && position.y) || piece.square.row * SQUARE_SIZE + halfSquare;
         
         this.ctx.beginPath();
         this.ctx.fillStyle = toColorString(piece.color);
@@ -197,7 +119,12 @@ class CheckersBoardController {
 
     private drawPieces() {
         this.checkers.pieces
+            .filter(piece => piece != this.dragTarget)
             .forEach(piece => this.drawPiece(piece));
+            
+        if (this.dragTarget) {
+            this.drawPiece(this.dragTarget, this.dragPosition);
+        }
     }
 
     private drawSquare(row: number, column: number) {
@@ -218,7 +145,7 @@ class CheckersBoardController {
     }
 }
 
-const CheckersBoard: ng.IComponentOptions = {
+export const CheckersBoard: ng.IComponentOptions = {
     template: `<canvas width="{{$ctrl.width}}" height="{{$ctrl.height}}">
         <span id="no_html5">Your Browser Does Not Support HTML5's Canvas Feature.</span>
     </canvas>`,
@@ -228,6 +155,3 @@ const CheckersBoard: ng.IComponentOptions = {
     },
     controller: CheckersBoardController
 };
-
-CheckersModule.provider('checkers', CheckersProvider);
-CheckersModule.component('checkersBoard', CheckersBoard);
