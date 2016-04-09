@@ -22,17 +22,9 @@ export enum Player {
 export const SQUARE_COUNT = 32;
 
 export class Bitboard {
-    
-    public whitePieces: number;
-    public blackPieces: number;
-    public kings: number;
-    public player: Player;
-    
-    constructor() {
-        this.whitePieces = 0xFFF00000;
-        this.blackPieces = 0x00000FFF;
-        this.kings = 0;
-        this.player = Player.White;
+    constructor(public whitePieces:number = 0xFFF00000, 
+            public blackPieces:number = 0x00000FFF, public kings:number = 0,
+            public player:Player = Player.White) {
     }
     
     getPlayerAtSquare(square:number) : Player {
@@ -53,15 +45,71 @@ export class Bitboard {
         }
         
         const notOccupied = ~(this.whitePieces | this.blackPieces);
-        const whiteKings = this.whitePieces | this.kings;
+        const whiteKings = this.whitePieces & this.kings;
         let movers = (notOccupied << 4) & this.whitePieces;
         movers |= ((notOccupied && MASK_L3) << 3) & this.whitePieces;
-        movers |= ((notOccupied && MASK_L5) << 5) & this.blackPieces;
+        movers |= ((notOccupied && MASK_L5) << 5) & this.whitePieces;
         if (whiteKings) {
             movers |= (notOccupied >> 4) & whiteKings;
             movers |= ((notOccupied && MASK_R3) >> 3) & whiteKings;
             movers |= ((notOccupied && MASK_R5) >> 5) & whiteKings;
         }
         return movers;
+    }
+    
+    move(source:number, destination:number): Bitboard {
+        // Check if correct player is moving.
+        if (this.player != this.getPlayerAtSquare(source)) {
+            return this;
+        }
+        
+        // Check if destination is empty.
+        if (this.getPlayerAtSquare(destination) != Player.None) {
+            return this;
+        }
+        
+        let sourceMask = S[source];
+        let destinationMask = S[destination];
+        
+        // Check if can move to destination
+        if (this.player == Player.White) {
+            let isKing = sourceMask & this.kings;
+            let canMove = (destinationMask << 4) & sourceMask;
+            canMove |= (destinationMask && MASK_L3 << 3) & sourceMask;
+            canMove |= (destinationMask && MASK_L5 << 5) & sourceMask;
+            if (isKing) {
+                canMove |= (destinationMask >> 4) & sourceMask;
+                canMove |= ((destinationMask && MASK_R3) >> 3) & sourceMask;
+                canMove |= ((destinationMask && MASK_R5) >> 5) & sourceMask;
+            }
+            
+            if (canMove) {
+                let whitePieces = (this.whitePieces | destinationMask) ^ sourceMask;
+                let blackPieces = this.blackPieces
+                let kings = this.kings | (destinationMask && 0xF);
+                let player = Player.Black;
+                return new Bitboard(whitePieces, blackPieces, kings, player);
+            }
+        } else if (this.player = Player.Black) {
+            let isKing = sourceMask & this.kings;
+            let canMove = (destinationMask >> 4) & sourceMask;
+            canMove |= (destinationMask && MASK_R3 >> 3) & sourceMask;
+            canMove |= (destinationMask && MASK_R5 >> 5) & sourceMask;
+            if (isKing) {
+                canMove |= (destinationMask << 4) & sourceMask;
+                canMove |= ((destinationMask && MASK_L3) << 3) & sourceMask;
+                canMove |= ((destinationMask && MASK_L5) << 5) & sourceMask;
+            }
+            
+            if (canMove) {
+                let whitePieces = this.whitePieces
+                let blackPieces =(this.blackPieces | destinationMask) ^ sourceMask;
+                let kings = this.kings | (destinationMask && 0xF0000000);
+                let player = Player.White;
+                return new Bitboard(whitePieces, blackPieces, kings, player);
+            }
+        }
+        
+        throw new Error('Not implemented');
     }
 }

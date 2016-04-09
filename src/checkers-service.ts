@@ -13,6 +13,19 @@ export class Checkers {
     getCurrentBoard() :Bitboard {
         return this.boards[this.boards.length - 1];
     }
+    
+    tryMove(source:number, destination:number): boolean {
+        let board = this.getCurrentBoard();
+        let newBoard = board.move(source, destination);
+        
+        // Move successful
+        if (board !== newBoard) {
+            this.boards.push(newBoard);
+            return true;
+        } else {
+            return false;
+        }
+    }
 }
 
 export class CheckersProvider {

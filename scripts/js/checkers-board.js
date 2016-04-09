@@ -79,6 +79,9 @@ class CheckersBoardController {
     handleMouseUp(ev) {
         let p = this.getMousePoint(ev);
         let destinationSquare = toSquare(p);
+        if (destinationSquare >= 0) {
+            this.checkers.tryMove(this.dragTarget, destinationSquare);
+        }
         this.dragTarget = -1;
         this.dragPosition = null;
         this.canvas.off('mousemove');

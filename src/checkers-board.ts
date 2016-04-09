@@ -110,7 +110,10 @@ class CheckersBoardController {
         let p = this.getMousePoint(ev);
         let destinationSquare = toSquare(p);
         
-        //TODO: do move
+        // Attempt move.
+        if (destinationSquare >= 0) {
+            this.checkers.tryMove(this.dragTarget, destinationSquare);
+        }
         
         // Reset dragTarget information.
         this.dragTarget = -1;

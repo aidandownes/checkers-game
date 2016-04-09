@@ -8,6 +8,17 @@ class Checkers {
     getCurrentBoard() {
         return this.boards[this.boards.length - 1];
     }
+    tryMove(source, destination) {
+        let board = this.getCurrentBoard();
+        let newBoard = board.move(source, destination);
+        if (board !== newBoard) {
+            this.boards.push(newBoard);
+            return true;
+        }
+        else {
+            return false;
+        }
+    }
 }
 exports.Checkers = Checkers;
 class CheckersProvider {

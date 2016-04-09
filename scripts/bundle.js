@@ -24,11 +24,11 @@ const MASK_R5 = S[25] | S[26] | S[27] | S[17] | S[18] | S[19] | S[9] | S[10] | S
 var Player = exports.Player;
 exports.SQUARE_COUNT = 32;
 class Bitboard {
-    constructor() {
-        this.whitePieces = 0xFFF00000;
-        this.blackPieces = 0x00000FFF;
-        this.kings = 0;
-        this.player = Player.White;
+    constructor(whitePieces = 0xFFF00000, blackPieces = 0x00000FFF, kings = 0, player = Player.White) {
+        this.whitePieces = whitePieces;
+        this.blackPieces = blackPieces;
+        this.kings = kings;
+        this.player = player;
     }
     getPlayerAtSquare(square) {
         const mask = S[square];
@@ -47,16 +47,63 @@ class Bitboard {
             return 0;
         }
         const notOccupied = ~(this.whitePieces | this.blackPieces);
-        const whiteKings = this.whitePieces | this.kings;
+        const whiteKings = this.whitePieces & this.kings;
         let movers = (notOccupied << 4) & this.whitePieces;
         movers |= ((notOccupied && MASK_L3) << 3) & this.whitePieces;
-        movers |= ((notOccupied && MASK_L5) << 5) & this.blackPieces;
+        movers |= ((notOccupied && MASK_L5) << 5) & this.whitePieces;
         if (whiteKings) {
             movers |= (notOccupied >> 4) & whiteKings;
             movers |= ((notOccupied && MASK_R3) >> 3) & whiteKings;
             movers |= ((notOccupied && MASK_R5) >> 5) & whiteKings;
         }
         return movers;
+    }
+    move(source, destination) {
+        if (this.player != this.getPlayerAtSquare(source)) {
+            return this;
+        }
+        if (this.getPlayerAtSquare(destination) != Player.None) {
+            return this;
+        }
+        let sourceMask = S[source];
+        let destinationMask = S[destination];
+        if (this.player == Player.White) {
+            let isKing = sourceMask & this.kings;
+            let canMove = (destinationMask << 4) & sourceMask;
+            canMove |= (destinationMask && MASK_L3 << 3) & sourceMask;
+            canMove |= (destinationMask && MASK_L5 << 5) & sourceMask;
+            if (isKing) {
+                canMove |= (destinationMask >> 4) & sourceMask;
+                canMove |= ((destinationMask && MASK_R3) >> 3) & sourceMask;
+                canMove |= ((destinationMask && MASK_R5) >> 5) & sourceMask;
+            }
+            if (canMove) {
+                let whitePieces = (this.whitePieces | destinationMask) ^ sourceMask;
+                let blackPieces = this.blackPieces;
+                let kings = this.kings | (destinationMask && 0xF);
+                let player = Player.Black;
+                return new Bitboard(whitePieces, blackPieces, kings, player);
+            }
+        }
+        else if (this.player = Player.Black) {
+            let isKing = sourceMask & this.kings;
+            let canMove = (destinationMask >> 4) & sourceMask;
+            canMove |= (destinationMask && MASK_R3 >> 3) & sourceMask;
+            canMove |= (destinationMask && MASK_R5 >> 5) & sourceMask;
+            if (isKing) {
+                canMove |= (destinationMask << 4) & sourceMask;
+                canMove |= ((destinationMask && MASK_L3) << 3) & sourceMask;
+                canMove |= ((destinationMask && MASK_L5) << 5) & sourceMask;
+            }
+            if (canMove) {
+                let whitePieces = this.whitePieces;
+                let blackPieces = (this.blackPieces | destinationMask) ^ sourceMask;
+                let kings = this.kings | (destinationMask && 0xF0000000);
+                let player = Player.White;
+                return new Bitboard(whitePieces, blackPieces, kings, player);
+            }
+        }
+        throw new Error('Not implemented');
     }
 }
 exports.Bitboard = Bitboard;
@@ -143,6 +190,9 @@ class CheckersBoardController {
     handleMouseUp(ev) {
         let p = this.getMousePoint(ev);
         let destinationSquare = toSquare(p);
+        if (destinationSquare >= 0) {
+            this.checkers.tryMove(this.dragTarget, destinationSquare);
+        }
         this.dragTarget = -1;
         this.dragPosition = null;
         this.canvas.off('mousemove');
@@ -244,6 +294,17 @@ class Checkers {
     }
     getCurrentBoard() {
         return this.boards[this.boards.length - 1];
+    }
+    tryMove(source, destination) {
+        let board = this.getCurrentBoard();
+        let newBoard = board.move(source, destination);
+        if (board !== newBoard) {
+            this.boards.push(newBoard);
+            return true;
+        }
+        else {
+            return false;
+        }
     }
 }
 exports.Checkers = Checkers;
