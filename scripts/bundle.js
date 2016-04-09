@@ -3,21 +3,102 @@
 const checkers_module_1 = require('./checkers-module');
 exports.AppModule = angular.module('app', [checkers_module_1.CheckersModule.name]);
 
-},{"./checkers-module":3}],2:[function(require,module,exports){
+},{"./checkers-module":4}],2:[function(require,module,exports){
 "use strict";
-const checkers_service_1 = require('./checkers-service');
-const SQUARE_SIZE = 50;
-function toColorString(color) {
-    switch (color) {
-        case checkers_service_1.Color.Red:
-            return 'red';
-        case checkers_service_1.Color.Black:
-            return 'black';
-        case checkers_service_1.Color.White:
-            return 'white';
-        default:
-            throw new Error('Unknown color');
+const S = (function () {
+    let squares = [];
+    for (let i = 0; i < 32; i++) {
+        squares.push(1 << i);
     }
+    return squares;
+})();
+const MASK_L3 = S[1] | S[2] | S[3] | S[9] | S[10] | S[11] | S[17] | S[18] | S[19] | S[25] | S[26] | S[27];
+const MASK_L5 = S[4] | S[5] | S[6] | S[12] | S[13] | S[14] | S[20] | S[21] | S[22];
+const MASK_R3 = S[28] | S[29] | S[30] | S[20] | S[21] | S[22] | S[12] | S[13] | S[14] | S[4] | S[5] | S[6];
+const MASK_R5 = S[25] | S[26] | S[27] | S[17] | S[18] | S[19] | S[9] | S[10] | S[11];
+(function (Player) {
+    Player[Player["None"] = 0] = "None";
+    Player[Player["White"] = 1] = "White";
+    Player[Player["Black"] = 2] = "Black";
+})(exports.Player || (exports.Player = {}));
+var Player = exports.Player;
+exports.SQUARE_COUNT = 32;
+class Bitboard {
+    constructor() {
+        this.whitePieces = 0xFFF00000;
+        this.blackPieces = 0x00000FFF;
+        this.kings = 0;
+        this.player = Player.White;
+    }
+    getPlayerAtSquare(square) {
+        const mask = S[square];
+        if (this.whitePieces & mask) {
+            return Player.White;
+        }
+        else if (this.blackPieces & mask) {
+            return Player.Black;
+        }
+        else {
+            return Player.None;
+        }
+    }
+    getMoversWhite() {
+        if (this.player != Player.White) {
+            return 0;
+        }
+        const notOccupied = ~(this.whitePieces | this.blackPieces);
+        const whiteKings = this.whitePieces | this.kings;
+        let movers = (notOccupied << 4) & this.whitePieces;
+        movers |= ((notOccupied && MASK_L3) << 3) & this.whitePieces;
+        movers |= ((notOccupied && MASK_L5) << 5) & this.blackPieces;
+        if (whiteKings) {
+            movers |= (notOccupied >> 4) & whiteKings;
+            movers |= ((notOccupied && MASK_R3) >> 3) & whiteKings;
+            movers |= ((notOccupied && MASK_R5) >> 5) & whiteKings;
+        }
+        return movers;
+    }
+}
+exports.Bitboard = Bitboard;
+
+},{}],3:[function(require,module,exports){
+"use strict";
+const checkers_bitboard_1 = require('./checkers-bitboard');
+const SQUARE_SIZE = 50;
+const ROW_LENGTH = 8;
+const COLUMN_LENGTH = 8;
+const BoardSquareArray = (function () {
+    let squares = [];
+    for (let i = 0; i < ROW_LENGTH; i++) {
+        let mod2 = i % 2;
+        for (let j = 7 - mod2; j > 0 - mod2; j -= 2) {
+            squares.push({ row: i, column: j });
+        }
+    }
+    return squares.reverse();
+})();
+function toPosition(square) {
+    let boardSquare = BoardSquareArray[square];
+    let x = boardSquare.column * SQUARE_SIZE;
+    let y = boardSquare.row * SQUARE_SIZE;
+    return { x: x, y: y };
+}
+function toSquare(position) {
+    var row = Math.floor(position.y / SQUARE_SIZE);
+    var column = Math.floor(position.x / SQUARE_SIZE);
+    return BoardSquareArray.findIndex(bs => bs.column == column && bs.row == row);
+}
+function add(p1, p2) {
+    return {
+        x: p1.x + p2.x,
+        y: p1.y + p2.y
+    };
+}
+function subtract(p1, p2) {
+    return {
+        x: p1.x - p2.x,
+        y: p1.y - p2.y
+    };
 }
 class CheckersBoardController {
     constructor(checkers, $element, $window, $timeout, $log) {
@@ -37,79 +118,98 @@ class CheckersBoardController {
     render() {
         this.$timeout(() => {
             this.drawBoard();
-            this.drawPieces();
+            this.drawPieces(this.checkers.getCurrentBoard());
         });
     }
     handleMouseDown(ev) {
-        let p = this.getMousePosition(ev);
-        let sq = this.getBoardSquare(p);
-        let clickedPiece = this.checkers.getPieceAtSquare(sq);
-        if (clickedPiece && clickedPiece.color == this.checkers.currentPlayer) {
-            this.dragTarget = clickedPiece;
+        let p = this.getMousePoint(ev);
+        let sourceSquare = toSquare(p);
+        let player = this.checkers.getCurrentBoard().getPlayerAtSquare(sourceSquare);
+        if (player == this.checkers.getCurrentBoard().player) {
+            let squarePosition = toPosition(sourceSquare);
+            this.dragTarget = sourceSquare;
             this.dragPosition = p;
+            this.dragTranslation = subtract(p, squarePosition);
             this.canvas.on('mousemove', this.handleMouseMove.bind(this));
             this.canvas.on('mouseup', this.handleMouseUp.bind(this));
             this.render();
         }
     }
     handleMouseMove(ev) {
-        let p = this.getMousePosition(ev);
+        let p = this.getMousePoint(ev);
         this.dragPosition = p;
         this.render();
     }
     handleMouseUp(ev) {
-        let p = this.getMousePosition(ev);
-        let sq = this.getBoardSquare(p);
-        this.dragTarget.square = sq;
-        this.dragTarget = null;
+        let p = this.getMousePoint(ev);
+        let destinationSquare = toSquare(p);
+        this.dragTarget = -1;
         this.dragPosition = null;
         this.canvas.off('mousemove');
         this.canvas.off('mouseup');
         this.render();
     }
-    getMousePosition(ev) {
+    getMousePoint(ev) {
         let rect = this.canvas[0].getBoundingClientRect();
         return {
             x: ev.clientX - rect.left,
             y: ev.clientY - rect.top
         };
     }
-    getBoardSquare(position) {
-        var row = Math.floor(position.y / SQUARE_SIZE);
-        var column = Math.floor(position.x / SQUARE_SIZE);
-        return { row: row, column: column };
-    }
-    drawPiece(piece, position) {
+    drawPiece(point, fillColor, strokeColor, translation) {
         const halfSquare = (SQUARE_SIZE * 0.5);
-        const x = (position && position.x) || piece.square.column * SQUARE_SIZE + halfSquare;
-        const y = (position && position.y) || piece.square.row * SQUARE_SIZE + halfSquare;
+        const x = point.x + translation.x;
+        const y = point.y + translation.y;
         this.ctx.beginPath();
-        this.ctx.fillStyle = toColorString(piece.color);
+        this.ctx.fillStyle = fillColor;
         this.ctx.lineWidth = 5;
-        this.ctx.strokeStyle = toColorString(checkers_service_1.Color.Black);
+        this.ctx.strokeStyle = strokeColor;
         this.ctx.arc(x, y, halfSquare - 10, 0, 2 * Math.PI, false);
         this.ctx.closePath();
         this.ctx.stroke();
         this.ctx.fill();
     }
-    drawPieces() {
-        this.checkers.pieces
-            .filter(piece => piece != this.dragTarget)
-            .forEach(piece => this.drawPiece(piece));
-        if (this.dragTarget) {
-            this.drawPiece(this.dragTarget, this.dragPosition);
+    drawPieces(bitboard) {
+        let drawDragTarget;
+        let translation = { x: SQUARE_SIZE * 0.5, y: SQUARE_SIZE * 0.5 };
+        for (let i = 0; i < checkers_bitboard_1.SQUARE_COUNT; i++) {
+            let fillColor;
+            let strokeColor;
+            switch (bitboard.getPlayerAtSquare(i)) {
+                case checkers_bitboard_1.Player.White:
+                    fillColor = 'white';
+                    strokeColor = 'black';
+                    break;
+                case checkers_bitboard_1.Player.Black:
+                    fillColor = 'black';
+                    strokeColor = 'white';
+                    break;
+                default:
+                    continue;
+            }
+            if (i == this.dragTarget) {
+                let dragTranslation = subtract(translation, this.dragTranslation);
+                drawDragTarget = this.drawPiece.bind(this, this.dragPosition, fillColor, strokeColor, dragTranslation);
+            }
+            else {
+                let position = toPosition(i);
+                this.drawPiece(position, fillColor, strokeColor, translation);
+            }
+        }
+        if (drawDragTarget) {
+            drawDragTarget();
         }
     }
     drawSquare(row, column) {
-        let color = row % 2 == column % 2 ? checkers_service_1.Color.Red : checkers_service_1.Color.Black;
+        let color = row % 2 == column % 2 ? 'white' : 'black';
         let x = row * SQUARE_SIZE;
         let y = column * SQUARE_SIZE;
-        this.ctx.fillStyle = toColorString(color);
+        this.ctx.fillStyle = color;
         this.ctx.fillRect(x, y, SQUARE_SIZE, SQUARE_SIZE);
     }
     drawBoard() {
-        for (let i = 0; i < checkers_service_1.ROW_LENGTH; i++) {
-            for (let j = 0; j < checkers_service_1.COLUMN_LENGTH; j++) {
+        for (let i = 0; i < ROW_LENGTH; i++) {
+            for (let j = 0; j < COLUMN_LENGTH; j++) {
                 this.drawSquare(i, j);
             }
         }
@@ -126,7 +226,7 @@ exports.CheckersBoard = {
     controller: CheckersBoardController
 };
 
-},{"./checkers-service":4}],3:[function(require,module,exports){
+},{"./checkers-bitboard":2}],4:[function(require,module,exports){
 "use strict";
 const checkers_service_1 = require('./checkers-service');
 const checkers_board_1 = require('./checkers-board');
@@ -134,52 +234,16 @@ exports.CheckersModule = angular.module('Checkers', []);
 exports.CheckersModule.provider('checkers', checkers_service_1.CheckersProvider);
 exports.CheckersModule.component('checkersBoard', checkers_board_1.CheckersBoard);
 
-},{"./checkers-board":2,"./checkers-service":4}],4:[function(require,module,exports){
+},{"./checkers-board":3,"./checkers-service":5}],5:[function(require,module,exports){
 "use strict";
-exports.ROW_LENGTH = 8;
-exports.COLUMN_LENGTH = 8;
-(function (Color) {
-    Color[Color["Black"] = 0] = "Black";
-    Color[Color["Red"] = 1] = "Red";
-    Color[Color["White"] = 2] = "White";
-})(exports.Color || (exports.Color = {}));
-var Color = exports.Color;
-function* getPossiblePositions() {
-    for (let i = 0; i < exports.ROW_LENGTH; i++) {
-        for (let j = 0; j < exports.COLUMN_LENGTH; j++) {
-            if (i % 2 == j % 2) {
-                yield { row: i, column: j };
-            }
-        }
-    }
-}
+const checkers_bitboard_1 = require('./checkers-bitboard');
 class Checkers {
     constructor() {
-        this.pieces = new Array();
-        this.initializePieces();
-        this.currentPlayer = Color.White;
+        this.boards = [];
+        this.boards.push(new checkers_bitboard_1.Bitboard());
     }
-    initializePieces() {
-        const isKing = false;
-        const isDragTarget = false;
-        const dragPosition = { x: 0, y: 0 };
-        const addPiece = (square, color) => {
-            this.pieces.push({ square: square, color: color, isKing: isKing });
-        };
-        for (let pos of getPossiblePositions()) {
-            if (pos.row < 3) {
-                addPiece(pos, Color.White);
-            }
-            else if (pos.row > 4) {
-                addPiece(pos, Color.Black);
-            }
-        }
-    }
-    getPieceAtSquare(square) {
-        return this.pieces.find(p => {
-            return p.square.column == square.column &&
-                p.square.row == square.row;
-        });
+    getCurrentBoard() {
+        return this.boards[this.boards.length - 1];
     }
 }
 exports.Checkers = Checkers;
@@ -190,7 +254,7 @@ class CheckersProvider {
 }
 exports.CheckersProvider = CheckersProvider;
 
-},{}]},{},[1,2,3,4])
+},{"./checkers-bitboard":2}]},{},[1,2,3,4,5])
 
 
 //# sourceMappingURL=bundle.js.map
