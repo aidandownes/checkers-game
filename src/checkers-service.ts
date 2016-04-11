@@ -15,12 +15,12 @@ export class Checkers {
     }
     
     tryMove(source:number, destination:number): boolean {
-        let board = this.getCurrentBoard();
-        let newBoard = board.move(source, destination);
+        let currentBoard = this.getCurrentBoard();
+        let {success, board} = currentBoard.tryMove(source, destination);
         
         // Move successful
-        if (board !== newBoard) {
-            this.boards.push(newBoard);
+        if (success) {
+            this.boards.push(board);
             return true;
         } else {
             return false;

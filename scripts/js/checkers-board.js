@@ -1,6 +1,6 @@
 "use strict";
 const checkers_bitboard_1 = require('./checkers-bitboard');
-const SQUARE_SIZE = 50;
+const SQUARE_SIZE = 60;
 const ROW_LENGTH = 8;
 const COLUMN_LENGTH = 8;
 const BoardSquareArray = (function () {

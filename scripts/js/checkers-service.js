@@ -9,10 +9,10 @@ class Checkers {
         return this.boards[this.boards.length - 1];
     }
     tryMove(source, destination) {
-        let board = this.getCurrentBoard();
-        let newBoard = board.move(source, destination);
-        if (board !== newBoard) {
-            this.boards.push(newBoard);
+        let currentBoard = this.getCurrentBoard();
+        let { success, board } = currentBoard.tryMove(source, destination);
+        if (success) {
+            this.boards.push(board);
             return true;
         }
         else {

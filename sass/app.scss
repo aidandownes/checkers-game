@@ -1,17 +1,20 @@
-$square-size: 50px;
+$square-size: 60px;
 $board-size: $square-size * 8;
+$shadow: 0px 2px 4px 0 rgba(0, 0, 0, 0.54);
 
 checkers-board {
     display: flex;
     width: $board-size;
     height: $board-size;
+    box-shadow:  $shadow;
 }
 
-body {
-    background-color: grey;
+body#app {
+    background-color: #F5F5F5;
 }
 
 main {
     display: flex;
     justify-content: center;
+    padding: 20px 20px 0px 20px;
 }
