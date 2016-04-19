@@ -1,0 +1,21 @@
+{
+  "name": "checkers",
+  "description": "",
+  "main": "index.js",
+  "license": "ISC",
+  "moduleType": [],
+  "homepage": "",
+  "ignore": [
+    "**/.*",
+    "node_modules",
+    "bower_components",
+    "test",
+    "tests"
+  ],
+  "dependencies": {
+    "bootstrap": "^3.3.6",
+    "angular": "angularjs#^1.5.3",
+    "flat-ui": "^2.3.0",
+    "angular-material": "^1.0.7"
+  }
+}

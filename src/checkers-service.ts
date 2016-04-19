@@ -1,20 +1,31 @@
 /// <reference path="../typings/browser.d.ts" />
-import {Bitboard} from './checkers-bitboard';
+import {Bitboard, Player} from './checkers-bitboard';
 
+export {Player} from './checkers-bitboard';
 
 export class Checkers {
-    boards: Bitboard[];
-    
+    private boards: Bitboard[];
+    private startTime: number;
+
     constructor() {
         this.boards = [];
         this.boards.push(new Bitboard());
+        this.startTime = (new Date()).getTime();
     }
-    
-    getCurrentBoard() :Bitboard {
+
+    getCurrentPlayer(): Player {
+        return this.getCurrentBoard().player;
+    }
+
+    getCurrentBoard(): Bitboard {
         return this.boards[this.boards.length - 1];
     }
-    
-    tryMove(source:number, destination:number): boolean {
+
+    getStartTime(): number {
+        return this.startTime;
+    }
+
+    tryMove(source: number, destination: number): boolean {
         let currentBoard = this.getCurrentBoard();
         let {success, board} = currentBoard.tryMove(source, destination);
         

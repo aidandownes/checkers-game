@@ -1,12 +1,21 @@
 "use strict";
 const checkers_bitboard_1 = require('./checkers-bitboard');
+var checkers_bitboard_2 = require('./checkers-bitboard');
+exports.Player = checkers_bitboard_2.Player;
 class Checkers {
     constructor() {
         this.boards = [];
         this.boards.push(new checkers_bitboard_1.Bitboard());
+        this.startTime = (new Date()).getTime();
+    }
+    getCurrentPlayer() {
+        return this.getCurrentBoard().player;
     }
     getCurrentBoard() {
         return this.boards[this.boards.length - 1];
+    }
+    getStartTime() {
+        return this.startTime;
     }
     tryMove(source, destination) {
         let currentBoard = this.getCurrentBoard();

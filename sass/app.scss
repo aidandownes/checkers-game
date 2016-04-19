@@ -2,19 +2,34 @@ $square-size: 60px;
 $board-size: $square-size * 8;
 $shadow: 0px 2px 4px 0 rgba(0, 0, 0, 0.54);
 
-checkers-board {
-    display: flex;
-    width: $board-size;
-    height: $board-size;
-    box-shadow:  $shadow;
+$space-xs: 4px;
+$space-small: 8px;
+$space-medium: 16px;
+$space-large: 32px;
+
+md-card {
+    min-width: 250px;
 }
 
-body#app {
-    background-color: #F5F5F5;
+md-card#checkers-board-card {
+    min-width: $board-size;
+    min-height: $board-size;
 }
 
-main {
-    display: flex;
-    justify-content: center;
-    padding: 20px 20px 0px 20px;
+
+span {
+    &.cb-key-name {
+        padding-right: $space-large;
+    }
+}
+
+md-list {
+    &.cb-compact-list {
+        padding-top: 0;
+        
+        md-list-item {
+            padding-left: 0;
+            min-height: 1.5em;
+        }
+    }
 }

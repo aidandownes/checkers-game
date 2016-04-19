@@ -1,9 +1,9 @@
 (function e(t,n,r){function s(o,u){if(!n[o]){if(!t[o]){var a=typeof require=="function"&&require;if(!u&&a)return a(o,!0);if(i)return i(o,!0);var f=new Error("Cannot find module '"+o+"'");throw f.code="MODULE_NOT_FOUND",f}var l=n[o]={exports:{}};t[o][0].call(l.exports,function(e){var n=t[o][1][e];return s(n?n:e)},l,l.exports,e,t,n,r)}return n[o].exports}var i=typeof require=="function"&&require;for(var o=0;o<r.length;o++)s(r[o]);return s})({1:[function(require,module,exports){
 "use strict";
 const checkers_module_1 = require('./checkers-module');
-exports.AppModule = angular.module('app', [checkers_module_1.CheckersModule.name]);
+exports.AppModule = angular.module('app', [checkers_module_1.CheckersModule.name, 'ngMaterial']);
 
-},{"./checkers-module":4}],2:[function(require,module,exports){
+},{"./checkers-module":6}],2:[function(require,module,exports){
 "use strict";
 const S = (function () {
     let squares = [];
@@ -268,7 +268,6 @@ exports.Bitboard = Bitboard;
 },{}],3:[function(require,module,exports){
 "use strict";
 const checkers_bitboard_1 = require('./checkers-bitboard');
-const SQUARE_SIZE = 60;
 const ROW_LENGTH = 8;
 const COLUMN_LENGTH = 8;
 const BoardSquareArray = (function () {
@@ -281,15 +280,15 @@ const BoardSquareArray = (function () {
     }
     return squares.reverse();
 })();
-function toPosition(square) {
+function toPosition(square, squareSize) {
     let boardSquare = BoardSquareArray[square];
-    let x = boardSquare.column * SQUARE_SIZE;
-    let y = boardSquare.row * SQUARE_SIZE;
+    let x = boardSquare.column * squareSize;
+    let y = boardSquare.row * squareSize;
     return { x: x, y: y };
 }
-function toSquare(position) {
-    var row = Math.floor(position.y / SQUARE_SIZE);
-    var column = Math.floor(position.x / SQUARE_SIZE);
+function toSquare(position, squareSize) {
+    var row = Math.floor(position.y / squareSize);
+    var column = Math.floor(position.x / squareSize);
     return BoardSquareArray.findIndex(bs => bs.column == column && bs.row == row);
 }
 function add(p1, p2) {
@@ -316,6 +315,9 @@ class CheckersBoardController {
         this.ctx = canvasElement.getContext('2d');
         this.canvas.on("mousedown", this.handleMouseDown.bind(this));
     }
+    $onInit() {
+        this.squareSize = this.width / ROW_LENGTH;
+    }
     $postLink() {
         this.render();
     }
@@ -327,10 +329,10 @@ class CheckersBoardController {
     }
     handleMouseDown(ev) {
         let p = this.getMousePoint(ev);
-        let sourceSquare = toSquare(p);
+        let sourceSquare = toSquare(p, this.squareSize);
         let player = this.checkers.getCurrentBoard().getPlayerAtSquare(sourceSquare);
         if (player == this.checkers.getCurrentBoard().player) {
-            let squarePosition = toPosition(sourceSquare);
+            let squarePosition = toPosition(sourceSquare, this.squareSize);
             this.dragTarget = sourceSquare;
             this.dragPosition = p;
             this.dragTranslation = subtract(p, squarePosition);
@@ -346,7 +348,7 @@ class CheckersBoardController {
     }
     handleMouseUp(ev) {
         let p = this.getMousePoint(ev);
-        let destinationSquare = toSquare(p);
+        let destinationSquare = toSquare(p, this.squareSize);
         if (destinationSquare >= 0) {
             this.checkers.tryMove(this.dragTarget, destinationSquare);
         }
@@ -364,7 +366,7 @@ class CheckersBoardController {
         };
     }
     drawPiece(point, fillColor, strokeColor, translation) {
-        const halfSquare = (SQUARE_SIZE * 0.5);
+        const halfSquare = (this.squareSize * 0.5);
         const x = point.x + translation.x;
         const y = point.y + translation.y;
         this.ctx.beginPath();
@@ -378,7 +380,7 @@ class CheckersBoardController {
     }
     drawPieces(bitboard) {
         let drawDragTarget;
-        let translation = { x: SQUARE_SIZE * 0.5, y: SQUARE_SIZE * 0.5 };
+        let translation = { x: this.squareSize * 0.5, y: this.squareSize * 0.5 };
         for (let i = 0; i < checkers_bitboard_1.SQUARE_COUNT; i++) {
             let fillColor;
             let strokeColor;
@@ -399,7 +401,7 @@ class CheckersBoardController {
                 drawDragTarget = this.drawPiece.bind(this, this.dragPosition, fillColor, strokeColor, dragTranslation);
             }
             else {
-                let position = toPosition(i);
+                let position = toPosition(i, this.squareSize);
                 this.drawPiece(position, fillColor, strokeColor, translation);
             }
         }
@@ -409,10 +411,10 @@ class CheckersBoardController {
     }
     drawSquare(row, column) {
         let color = row % 2 == column % 2 ? 'white' : 'black';
-        let x = row * SQUARE_SIZE;
-        let y = column * SQUARE_SIZE;
+        let x = row * this.squareSize;
+        let y = column * this.squareSize;
         this.ctx.fillStyle = color;
-        this.ctx.fillRect(x, y, SQUARE_SIZE, SQUARE_SIZE);
+        this.ctx.fillRect(x, y, this.squareSize, this.squareSize);
     }
     drawBoard() {
         for (let i = 0; i < ROW_LENGTH; i++) {
@@ -436,21 +438,153 @@ exports.CheckersBoard = {
 },{"./checkers-bitboard":2}],4:[function(require,module,exports){
 "use strict";
 const checkers_service_1 = require('./checkers-service');
+class GameMenuController {
+    constructor(checkers, $interval) {
+        this.checkers = checkers;
+        this.$interval = $interval;
+        this.$interval(() => {
+            let endTime = new Date();
+            this.playTime = (endTime.getTime() - this.checkers.getStartTime()) / 1000;
+        }, 1000);
+    }
+    getCurrentPlayer() {
+        switch (this.checkers.getCurrentPlayer()) {
+            case checkers_service_1.Player.White:
+                return 'White';
+            case checkers_service_1.Player.Black:
+                return 'Black';
+            default:
+                throw new Error('Unexpected player');
+        }
+    }
+    undoMove() {
+        return false;
+    }
+    getPlayTime() {
+        return this.playTime;
+    }
+}
+function TimeFormatFilter() {
+    return function (value) {
+        value = value || 0;
+        let seconds = Math.round(value % 60);
+        value = Math.floor(value / 60);
+        let minutes = Math.round(value % 60);
+        value = Math.floor(value / 60);
+        let hours = Math.round(value % 24);
+        value = Math.floor(value / 24);
+        let days = value;
+        if (days) {
+            return `${days} days, ${hours} hrs, ${minutes} mins, ${seconds} secs`;
+        }
+        else if (hours) {
+            return `${hours} hrs, ${minutes} mins, ${seconds} secs`;
+        }
+        else if (minutes) {
+            return minutes == 1 ? `${minutes} mins, ${seconds} secs` : `${minutes} mins, ${seconds} secs`;
+        }
+        else {
+            return `${seconds} secs`;
+        }
+    };
+}
+exports.TimeFormatFilter = TimeFormatFilter;
+;
+exports.CheckersGameMenu = {
+    templateUrl: './templates/game-menu.html',
+    controller: GameMenuController
+};
+
+},{"./checkers-service":7}],5:[function(require,module,exports){
+"use strict";
+const checkers_service_1 = require('./checkers-service');
+class GameStatsController {
+    constructor(checkers, $interval) {
+        this.checkers = checkers;
+        this.$interval = $interval;
+        this.$interval(() => {
+            let endTime = new Date();
+            this.playTime = (endTime.getTime() - this.checkers.getStartTime()) / 1000;
+        }, 1000);
+    }
+    getCurrentPlayer() {
+        switch (this.checkers.getCurrentPlayer()) {
+            case checkers_service_1.Player.White:
+                return 'White';
+            case checkers_service_1.Player.Black:
+                return 'Black';
+            default:
+                throw new Error('Unexpected player');
+        }
+    }
+    undoMove() {
+        return false;
+    }
+    getPlayTime() {
+        return this.playTime;
+    }
+}
+function TimeFormatFilter() {
+    return function (value) {
+        value = value || 0;
+        let seconds = Math.round(value % 60);
+        value = Math.floor(value / 60);
+        let minutes = Math.round(value % 60);
+        value = Math.floor(value / 60);
+        let hours = Math.round(value % 24);
+        value = Math.floor(value / 24);
+        let days = value;
+        if (days) {
+            return `${days} days, ${hours} hrs, ${minutes} mins, ${seconds} secs`;
+        }
+        else if (hours) {
+            return `${hours} hrs, ${minutes} mins, ${seconds} secs`;
+        }
+        else if (minutes) {
+            return minutes == 1 ? `${minutes} mins, ${seconds} secs` : `${minutes} mins, ${seconds} secs`;
+        }
+        else {
+            return `${seconds} secs`;
+        }
+    };
+}
+exports.TimeFormatFilter = TimeFormatFilter;
+;
+exports.CheckersGameStats = {
+    templateUrl: './templates/game-stats.ng',
+    controller: GameStatsController
+};
+
+},{"./checkers-service":7}],6:[function(require,module,exports){
+"use strict";
+const checkers_service_1 = require('./checkers-service');
 const checkers_board_1 = require('./checkers-board');
+const checkers_game_stats_1 = require('./checkers-game-stats');
 exports.CheckersModule = angular.module('Checkers', []);
 exports.CheckersModule.provider('checkers', checkers_service_1.CheckersProvider);
 exports.CheckersModule.component('checkersBoard', checkers_board_1.CheckersBoard);
+exports.CheckersModule.component('checkersGameStats', checkers_game_stats_1.CheckersGameStats);
+exports.CheckersModule.filter('timeFilter', checkers_game_stats_1.TimeFormatFilter);
 
-},{"./checkers-board":3,"./checkers-service":5}],5:[function(require,module,exports){
+},{"./checkers-board":3,"./checkers-game-stats":5,"./checkers-service":7}],7:[function(require,module,exports){
 "use strict";
 const checkers_bitboard_1 = require('./checkers-bitboard');
+var checkers_bitboard_2 = require('./checkers-bitboard');
+exports.Player = checkers_bitboard_2.Player;
 class Checkers {
     constructor() {
         this.boards = [];
         this.boards.push(new checkers_bitboard_1.Bitboard());
+        this.startTime = (new Date()).getTime();
+    }
+    getCurrentPlayer() {
+        return this.getCurrentBoard().player;
     }
     getCurrentBoard() {
         return this.boards[this.boards.length - 1];
+    }
+    getStartTime() {
+        return this.startTime;
     }
     tryMove(source, destination) {
         let currentBoard = this.getCurrentBoard();
@@ -472,7 +606,7 @@ class CheckersProvider {
 }
 exports.CheckersProvider = CheckersProvider;
 
-},{"./checkers-bitboard":2}]},{},[1,2,3,4,5])
+},{"./checkers-bitboard":2}]},{},[1,2,3,4,5,6,7])
 
 
 //# sourceMappingURL=bundle.js.map

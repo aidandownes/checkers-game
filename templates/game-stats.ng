@@ -1,0 +1,14 @@
+<md-list class="cb-compact-list">
+    <md-list-item>
+        <div class="md-list-item-text" layout="row" flex layout-align="space-between">
+            <span> Current Player </span>
+            <span> {{$ctrl.getCurrentPlayer()}}  </span>
+        </div>
+    </md-list-item>
+    <md-list-item>
+        <div class="md-list-item-text" layout="row" flex layout-align="space-between">
+            <span class="cb-key-name"> Play Time </span>
+            <span> {{$ctrl.getPlayTime()|timeFilter}}  </span>
+        </div>
+    </md-list-item>
+</md-list>

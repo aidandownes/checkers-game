@@ -1,6 +1,5 @@
 "use strict";
 const checkers_bitboard_1 = require('./checkers-bitboard');
-const SQUARE_SIZE = 60;
 const ROW_LENGTH = 8;
 const COLUMN_LENGTH = 8;
 const BoardSquareArray = (function () {
@@ -13,15 +12,15 @@ const BoardSquareArray = (function () {
     }
     return squares.reverse();
 })();
-function toPosition(square) {
+function toPosition(square, squareSize) {
     let boardSquare = BoardSquareArray[square];
-    let x = boardSquare.column * SQUARE_SIZE;
-    let y = boardSquare.row * SQUARE_SIZE;
+    let x = boardSquare.column * squareSize;
+    let y = boardSquare.row * squareSize;
     return { x: x, y: y };
 }
-function toSquare(position) {
-    var row = Math.floor(position.y / SQUARE_SIZE);
-    var column = Math.floor(position.x / SQUARE_SIZE);
+function toSquare(position, squareSize) {
+    var row = Math.floor(position.y / squareSize);
+    var column = Math.floor(position.x / squareSize);
     return BoardSquareArray.findIndex(bs => bs.column == column && bs.row == row);
 }
 function add(p1, p2) {
@@ -48,6 +47,9 @@ class CheckersBoardController {
         this.ctx = canvasElement.getContext('2d');
         this.canvas.on("mousedown", this.handleMouseDown.bind(this));
     }
+    $onInit() {
+        this.squareSize = this.width / ROW_LENGTH;
+    }
     $postLink() {
         this.render();
     }
@@ -59,10 +61,10 @@ class CheckersBoardController {
     }
     handleMouseDown(ev) {
         let p = this.getMousePoint(ev);
-        let sourceSquare = toSquare(p);
+        let sourceSquare = toSquare(p, this.squareSize);
         let player = this.checkers.getCurrentBoard().getPlayerAtSquare(sourceSquare);
         if (player == this.checkers.getCurrentBoard().player) {
-            let squarePosition = toPosition(sourceSquare);
+            let squarePosition = toPosition(sourceSquare, this.squareSize);
             this.dragTarget = sourceSquare;
             this.dragPosition = p;
             this.dragTranslation = subtract(p, squarePosition);
@@ -78,7 +80,7 @@ class CheckersBoardController {
     }
     handleMouseUp(ev) {
         let p = this.getMousePoint(ev);
-        let destinationSquare = toSquare(p);
+        let destinationSquare = toSquare(p, this.squareSize);
         if (destinationSquare >= 0) {
             this.checkers.tryMove(this.dragTarget, destinationSquare);
         }
@@ -96,7 +98,7 @@ class CheckersBoardController {
         };
     }
     drawPiece(point, fillColor, strokeColor, translation) {
-        const halfSquare = (SQUARE_SIZE * 0.5);
+        const halfSquare = (this.squareSize * 0.5);
         const x = point.x + translation.x;
         const y = point.y + translation.y;
         this.ctx.beginPath();
@@ -110,7 +112,7 @@ class CheckersBoardController {
     }
     drawPieces(bitboard) {
         let drawDragTarget;
-        let translation = { x: SQUARE_SIZE * 0.5, y: SQUARE_SIZE * 0.5 };
+        let translation = { x: this.squareSize * 0.5, y: this.squareSize * 0.5 };
         for (let i = 0; i < checkers_bitboard_1.SQUARE_COUNT; i++) {
             let fillColor;
             let strokeColor;
@@ -131,7 +133,7 @@ class CheckersBoardController {
                 drawDragTarget = this.drawPiece.bind(this, this.dragPosition, fillColor, strokeColor, dragTranslation);
             }
             else {
-                let position = toPosition(i);
+                let position = toPosition(i, this.squareSize);
                 this.drawPiece(position, fillColor, strokeColor, translation);
             }
         }
@@ -141,10 +143,10 @@ class CheckersBoardController {
     }
     drawSquare(row, column) {
         let color = row % 2 == column % 2 ? 'white' : 'black';
-        let x = row * SQUARE_SIZE;
-        let y = column * SQUARE_SIZE;
+        let x = row * this.squareSize;
+        let y = column * this.squareSize;
         this.ctx.fillStyle = color;
-        this.ctx.fillRect(x, y, SQUARE_SIZE, SQUARE_SIZE);
+        this.ctx.fillRect(x, y, this.squareSize, this.squareSize);
     }
     drawBoard() {
         for (let i = 0; i < ROW_LENGTH; i++) {

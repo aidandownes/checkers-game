@@ -63,7 +63,7 @@ gulp.task('typescript', function () {
         .pipe(gulp.dest('scripts/js'));
 });
 
-gulp.task('watch', function () {
+gulp.task('watch', ['scripts', 'sass'], function () {
         gulp.watch('./src/**/*.ts', ['scripts']);
         gulp.watch('./sass/**/*.scss', ['sass']);
     });

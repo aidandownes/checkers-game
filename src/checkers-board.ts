@@ -1,7 +1,6 @@
 import {Checkers} from './checkers-service';
 import {Bitboard, Player, SQUARE_COUNT} from './checkers-bitboard';
 
-const SQUARE_SIZE = 60;
 const ROW_LENGTH = 8;
 const COLUMN_LENGTH = 8;
 
@@ -26,16 +25,16 @@ const BoardSquareArray = (function() : BoardSquare[] {
     return squares.reverse();
 })();
 
-function toPosition(square:number) : Point {
+function toPosition(square:number, squareSize:number) : Point {
     let boardSquare = BoardSquareArray[square];
-    let x = boardSquare.column * SQUARE_SIZE;
-    let y = boardSquare.row * SQUARE_SIZE;
+    let x = boardSquare.column * squareSize;
+    let y = boardSquare.row * squareSize;
     return {x, y};
 }
 
-function toSquare(position: Point): number {
-    var row = Math.floor(position.y / SQUARE_SIZE);
-    var column = Math.floor(position.x / SQUARE_SIZE);
+function toSquare(position: Point,  squareSize:number): number {
+    var row = Math.floor(position.y / squareSize);
+    var column = Math.floor(position.x / squareSize);
     return BoardSquareArray.findIndex(bs => bs.column == column && bs.row == row);
 }
 
@@ -59,6 +58,9 @@ class CheckersBoardController {
     dragTarget: number;
     dragPosition: Point;
     dragTranslation: Point;
+    squareSize: number;
+    width:number;
+    height:number;
 
     constructor(private checkers: Checkers, private $element: ng.IAugmentedJQuery,
         private $window: ng.IWindowService, private $timeout: ng.ITimeoutService,
@@ -69,6 +71,10 @@ class CheckersBoardController {
         
         // Add event listeners
         this.canvas.on("mousedown", this.handleMouseDown.bind(this));
+    }
+    
+    $onInit() {
+        this.squareSize = this.width / ROW_LENGTH;
     }
 
     $postLink() {
@@ -84,11 +90,11 @@ class CheckersBoardController {
 
     private handleMouseDown(ev: JQueryEventObject) {
         let p = this.getMousePoint(ev);
-        let sourceSquare = toSquare(p);
+        let sourceSquare = toSquare(p, this.squareSize);
         let player = this.checkers.getCurrentBoard().getPlayerAtSquare(sourceSquare);
 
         if (player == this.checkers.getCurrentBoard().player) {
-            let squarePosition = toPosition(sourceSquare);
+            let squarePosition = toPosition(sourceSquare, this.squareSize);
             
             this.dragTarget = sourceSquare;
             this.dragPosition = p;
@@ -108,7 +114,7 @@ class CheckersBoardController {
     
     private handleMouseUp(ev:JQueryEventObject) {
         let p = this.getMousePoint(ev);
-        let destinationSquare = toSquare(p);
+        let destinationSquare = toSquare(p, this.squareSize);
         
         // Attempt move.
         if (destinationSquare >= 0) {
@@ -137,7 +143,7 @@ class CheckersBoardController {
     }
 
     private drawPiece(point: Point, fillColor:string, strokeColor:string, translation:Point) {
-        const halfSquare = (SQUARE_SIZE * 0.5);
+        const halfSquare = (this.squareSize * 0.5);
         const x = point.x + translation.x;
         const y = point.y + translation.y;
         
@@ -158,7 +164,7 @@ class CheckersBoardController {
     private drawPieces(bitboard: Bitboard) {
         // Holds delayed draw operation for drag target.
         let drawDragTarget: () => void;
-        let translation:Point = {x: SQUARE_SIZE * 0.5, y: SQUARE_SIZE * 0.5};
+        let translation:Point = {x: this.squareSize * 0.5, y: this.squareSize * 0.5};
         
         for(let i = 0; i < SQUARE_COUNT; i++) {
             let fillColor:string;
@@ -185,7 +191,7 @@ class CheckersBoardController {
                     this, this.dragPosition, fillColor, strokeColor, dragTranslation);
             }
             else {
-                let position = toPosition(i);
+                let position = toPosition(i, this.squareSize);
                 this.drawPiece(position, fillColor, strokeColor, translation);
             }
         }
@@ -198,11 +204,11 @@ class CheckersBoardController {
 
     private drawSquare(row: number, column: number) {
         let color = row % 2 == column % 2 ? 'white': 'black' 
-        let x = row * SQUARE_SIZE;
-        let y = column * SQUARE_SIZE;
+        let x = row * this.squareSize;
+        let y = column * this.squareSize;
 
         this.ctx.fillStyle =  color;
-        this.ctx.fillRect(x, y, SQUARE_SIZE, SQUARE_SIZE);
+        this.ctx.fillRect(x, y, this.squareSize, this.squareSize);
     }
 
     private drawBoard() {

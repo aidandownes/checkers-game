@@ -1,13 +1,15 @@
-checkers-board {
-  display: flex;
-  width: 480px;
-  height: 480px;
-  box-shadow: 0px 2px 4px 0 rgba(0, 0, 0, 0.54); }
+md-card {
+  min-width: 250px; }
 
-body#app {
-  background-color: #F5F5F5; }
+md-card#checkers-board-card {
+  min-width: 480px;
+  min-height: 480px; }
 
-main {
-  display: flex;
-  justify-content: center;
-  padding: 20px 20px 0px 20px; }
+span.cb-key-name {
+  padding-right: 32px; }
+
+md-list.cb-compact-list {
+  padding-top: 0; }
+  md-list.cb-compact-list md-list-item {
+    padding-left: 0;
+    min-height: 1.5em; }
