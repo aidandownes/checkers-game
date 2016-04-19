@@ -8,6 +8,7 @@
     <title>Checkers | HTML5</title>
     <link rel="stylesheet" type="text/css" href="styles/app.css">
     <link rel="stylesheet" type="text/css" href="bower_components/angular-material/angular-material.min.css">
+    <link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet">
 </head>
 
 <body ng-app="app">
@@ -20,7 +21,7 @@
         </md-toolbar>
         <md-content layout="row" layout-xs="column" flex>
             <div layout="column">
-                <md-card id="checkers-board-card">
+                <md-card id="checkers-board-card" md-theme="card-default">
                     <md-card-title>
                         <md-card-title-text>
                             <span class="md-headline">Player 1 vs Player2</span>
@@ -32,7 +33,7 @@
                 </md-card>
             </div>
             <div layout="column">
-                <md-card>
+                <md-card md-theme="card-blue-dark">
                     <md-card-title>
                         <md-card-title-text>
                             <span class="md-headline">Game stats</span>

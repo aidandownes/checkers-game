@@ -1,14 +1,16 @@
 <md-list class="cb-compact-list">
-    <md-list-item>
-        <div class="md-list-item-text" layout="row" flex layout-align="space-between">
-            <span> Current Player </span>
-            <span> {{$ctrl.getCurrentPlayer()}}  </span>
+    <md-list-item class="md-2-line">
+        <md-icon md-font-icon="material-icons">people </md-icon>
+        <div class="md-list-item-text" layout="column">
+            <h3> Current Player </h3>
+            <p> {{$ctrl.getCurrentPlayer()}}  </p>
         </div>
     </md-list-item>
-    <md-list-item>
-        <div class="md-list-item-text" layout="row" flex layout-align="space-between">
-            <span class="cb-key-name"> Play Time </span>
-            <span> {{$ctrl.getPlayTime()|timeFilter}}  </span>
+    <md-list-item class="md-2-line">
+        <md-icon md-font-icon="material-icons">watch_later </md-icon>
+        <div class="md-list-item-text">
+            <h3> Play Time </h3>
+            <p> {{$ctrl.getPlayTime()|timeFilter}}  </p>
         </div>
     </md-list-item>
 </md-list>
