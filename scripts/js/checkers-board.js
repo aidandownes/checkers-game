@@ -36,16 +36,18 @@ function subtract(p1, p2) {
     };
 }
 class CheckersBoardController {
-    constructor(checkers, $element, $window, $timeout, $log) {
+    constructor(checkers, $element, $window, $timeout, $log, $scope) {
         this.checkers = checkers;
         this.$element = $element;
         this.$window = $window;
         this.$timeout = $timeout;
         this.$log = $log;
+        this.$scope = $scope;
         let canvasElement = $element[0].querySelector('canvas');
         this.canvas = angular.element(canvasElement);
         this.ctx = canvasElement.getContext('2d');
         this.canvas.on("mousedown", this.handleMouseDown.bind(this));
+        $scope.$watch(() => this.checkers.getCurrentBoard(), () => this.render());
     }
     $onInit() {
         this.squareSize = this.width / ROW_LENGTH;
@@ -117,11 +119,11 @@ class CheckersBoardController {
             let fillColor;
             let strokeColor;
             switch (bitboard.getPlayerAtSquare(i)) {
-                case checkers_bitboard_1.Player.White:
+                case checkers_bitboard_1.Player.One:
                     fillColor = 'white';
                     strokeColor = 'black';
                     break;
-                case checkers_bitboard_1.Player.Black:
+                case checkers_bitboard_1.Player.Two:
                     fillColor = 'black';
                     strokeColor = 'white';
                     break;

@@ -11,9 +11,9 @@ class GameStatsController {
     }
     getCurrentPlayer() {
         switch (this.checkers.getCurrentPlayer()) {
-            case checkers_service_1.Player.White:
+            case checkers_service_1.Player.One:
                 return 'White';
-            case checkers_service_1.Player.Black:
+            case checkers_service_1.Player.Two:
                 return 'Black';
             default:
                 throw new Error('Unexpected player');

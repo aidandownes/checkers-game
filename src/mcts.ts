@@ -2,6 +2,7 @@
 import * as asserts from './assert';
 
 export enum Player {
+    None,
     One,
     Two
 }
@@ -140,7 +141,7 @@ class Node {
 }
 
 
-export function computeTree(rootState:GameState, options:ComputeOptions): Node {
+function computeTree(rootState:GameState, options:ComputeOptions): Node {
     asserts.assert(options.maxIterations >= 0 || options.maxTime >= 0);
     const root = new Node(rootState);
     const startTime = new Date();
@@ -164,7 +165,7 @@ export function computeTree(rootState:GameState, options:ComputeOptions): Node {
         }
         
         // We now play randomly until the game ends.
-        while(!state.hasMoves()) {
+        while(state.hasMoves()) {
             state = state.doRandomMove();
         }
         
@@ -192,8 +193,11 @@ export function computeMove(rootState:GameState, options:ComputeOptions): Move {
     }
     
     // Ideally we should be running a bunch of computations in parallel
+    console.time('computeTree');
     let root = computeTree(rootState, options);
+    console.timeEnd('computeTree');
     let gamesPlayed: number = root.visits;
+    console.log(`${gamesPlayed} games played`);
 
    
     
@@ -208,6 +212,7 @@ export function computeMove(rootState:GameState, options:ComputeOptions): Move {
            bestScore = expectedSuccessRate;
        }
     }
-
+    
+    console.log(`${bestScore} is the best score`);
     return bestMove;  
 }

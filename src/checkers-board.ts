@@ -1,5 +1,5 @@
 import {Checkers} from './checkers-service';
-import {Bitboard, Player, SQUARE_COUNT} from './checkers-bitboard';
+import {Bitboard, SQUARE_COUNT, Player} from './checkers-bitboard';
 
 const ROW_LENGTH = 8;
 const COLUMN_LENGTH = 8;
@@ -64,13 +64,15 @@ class CheckersBoardController {
 
     constructor(private checkers: Checkers, private $element: ng.IAugmentedJQuery,
         private $window: ng.IWindowService, private $timeout: ng.ITimeoutService,
-        private $log: ng.ILogService) {
+        private $log: ng.ILogService, private $scope:ng.IScope) {
         let canvasElement = <HTMLCanvasElement>$element[0].querySelector('canvas');
         this.canvas = angular.element(canvasElement);
         this.ctx = canvasElement.getContext('2d');
         
         // Add event listeners
         this.canvas.on("mousedown", this.handleMouseDown.bind(this));
+        
+        $scope.$watch(() => this.checkers.getCurrentBoard(), () => this.render());
     }
     
     $onInit() {
@@ -171,11 +173,11 @@ class CheckersBoardController {
             let strokeColor:string;
             
             switch (bitboard.getPlayerAtSquare(i)) {
-                case Player.White:
+                case Player.One:
                     fillColor = 'white';
                     strokeColor = 'black';
                     break;
-                case Player.Black:
+                case Player.Two:
                     fillColor = 'black';
                     strokeColor = 'white';
                     break;

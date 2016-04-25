@@ -17,8 +17,33 @@ function configureThemes($mdThemingProvider) {
 }
 exports.AppModule.config(configureThemes);
 
-},{"./checkers-module":6}],2:[function(require,module,exports){
+},{"./checkers-module":7}],2:[function(require,module,exports){
 "use strict";
+function assert(condition, message) {
+    if (!condition) {
+        throw new Error(message || 'Assert failed');
+    }
+}
+exports.assert = assert;
+function assertNotEmpty(list, message) {
+    if (!list || list.length == 0) {
+        throw new Error(message || 'Assert failed: List not empty');
+    }
+}
+exports.assertNotEmpty = assertNotEmpty;
+function assertEmpty(list, message) {
+    if (!list || list.length != 0) {
+        throw new Error(message || 'Assert failed: List empty');
+    }
+}
+exports.assertEmpty = assertEmpty;
+
+},{}],3:[function(require,module,exports){
+"use strict";
+const mcts_1 = require('./mcts');
+const Asserts = require('./assert');
+var mcts_2 = require('./mcts');
+exports.Player = mcts_2.Player;
 const S = (function () {
     let squares = [];
     for (let i = 0; i < 32; i++) {
@@ -30,42 +55,140 @@ const MASK_L3 = S[1] | S[2] | S[3] | S[9] | S[10] | S[11] | S[17] | S[18] | S[19
 const MASK_L5 = S[4] | S[5] | S[6] | S[12] | S[13] | S[14] | S[20] | S[21] | S[22];
 const MASK_R3 = S[28] | S[29] | S[30] | S[20] | S[21] | S[22] | S[12] | S[13] | S[14] | S[4] | S[5] | S[6];
 const MASK_R5 = S[25] | S[26] | S[27] | S[17] | S[18] | S[19] | S[9] | S[10] | S[11];
-(function (Player) {
-    Player[Player["None"] = 0] = "None";
-    Player[Player["White"] = 1] = "White";
-    Player[Player["Black"] = 2] = "Black";
-})(exports.Player || (exports.Player = {}));
-var Player = exports.Player;
 exports.SQUARE_COUNT = 32;
 class Bitboard {
-    constructor(whitePieces = 0xFFF00000, blackPieces = 0x00000FFF, kings = 0, player = Player.White) {
+    constructor(whitePieces = 0xFFF00000, blackPieces = 0x00000FFF, kings = 0, player = mcts_1.Player.One) {
         this.whitePieces = whitePieces;
         this.blackPieces = blackPieces;
         this.kings = kings;
         this.player = player;
-        if (this.player == Player.White) {
-            let canPlay = this.getJumpersWhite() || this.getSteppersWhite();
-            this.winner = canPlay ? Player.None : Player.Black;
+        if (this.player == mcts_1.Player.One) {
+            let canPlay = this.getJumpersWhite() || this.getHoppersWhite();
+            this.winner = canPlay ? mcts_1.Player.None : mcts_1.Player.Two;
         }
         else {
-            let canPlay = this.getJumpersBlack() || this.getSteppersBlack();
-            this.winner = canPlay ? Player.None : Player.White;
+            let canPlay = this.getJumpersBlack() || this.getHoppersBlack();
+            this.winner = canPlay ? mcts_1.Player.None : mcts_1.Player.One;
         }
+        Asserts.assert((blackPieces & whitePieces) == 0);
+    }
+    doMove(move) {
+        let result = this.tryMove(move);
+        Asserts.assert(result.success, 'Move was not succesful');
+        return result.board;
+    }
+    doRandomMove() {
+        let moves = this.getMoves();
+        Asserts.assertNotEmpty(moves);
+        let randomMoveIndex = Math.floor(Math.random() * moves.length);
+        return this.doMove(moves[randomMoveIndex]);
+    }
+    hasMoves() {
+        return this.getMoves().length > 0;
+    }
+    getMoves() {
+        if (!this.moves) {
+            this.moves = [];
+            for (let i = 0; i < exports.SQUARE_COUNT; i++) {
+                if (this.getPlayerAtSquare(i) != this.player) {
+                    continue;
+                }
+                Array.prototype.push.apply(this.moves, this.getJumpMoves(i));
+            }
+            if (this.moves.length == 0) {
+                for (let i = 0; i < exports.SQUARE_COUNT; i++) {
+                    if (this.getPlayerAtSquare(i) != this.player) {
+                        continue;
+                    }
+                    Array.prototype.push.apply(this.moves, this.getHopMoves(i));
+                }
+            }
+        }
+        return this.moves;
+    }
+    getResult(player) {
+        Asserts.assert(this.winner == mcts_1.Player.One || this.winner == mcts_1.Player.Two);
+        return this.winner == player ? mcts_1.Result.Win : mcts_1.Result.Lose;
+    }
+    getPlayerToMove() {
+        return this.player;
     }
     getPlayerAtSquare(square) {
         const mask = S[square];
         if (this.whitePieces & mask) {
-            return Player.White;
+            return mcts_1.Player.One;
         }
         else if (this.blackPieces & mask) {
-            return Player.Black;
+            return mcts_1.Player.Two;
         }
         else {
-            return Player.None;
+            return mcts_1.Player.None;
         }
     }
-    getSteppersWhite() {
-        if (this.player != Player.White) {
+    getHopMoves(source) {
+        let moves = [];
+        const mask = S[source];
+        const notOccupied = ~(this.whitePieces | this.blackPieces);
+        const isKing = mask & this.kings;
+        const player = this.player;
+        let hops = 0;
+        if (isKing || (player == mcts_1.Player.One)) {
+            hops |= (mask >>> 4) & notOccupied;
+            hops |= ((mask & MASK_R3) >>> 3) & notOccupied;
+            hops |= ((mask & MASK_R5) >>> 5) & notOccupied;
+        }
+        if (isKing || (player == mcts_1.Player.Two)) {
+            hops |= (mask << 4) & notOccupied;
+            hops |= ((mask & MASK_L3) << 3) & notOccupied;
+            hops |= ((mask & MASK_L5) << 5) & notOccupied;
+        }
+        for (let destination = 0; destination < 32; destination++) {
+            if (S[destination] & hops) {
+                moves.push({ source: source, destination: destination, player: player });
+            }
+        }
+        return moves;
+    }
+    getJumpMoves(source) {
+        let moves = [];
+        const mask = S[source];
+        const notOccupied = ~(this.whitePieces | this.blackPieces);
+        const isKing = mask & this.kings;
+        const player = this.player;
+        let jumps = 0;
+        let rightJump = (opponentPieces) => {
+            let temp = (mask >>> 4) & opponentPieces;
+            jumps |= (((temp & MASK_R3) >>> 3) | ((temp & MASK_R5) >>> 5)) & notOccupied;
+            temp = (((mask & MASK_R3) >>> 3) | ((mask & MASK_R5) >>> 5)) & opponentPieces;
+            jumps |= (temp >>> 4) & notOccupied;
+        };
+        let leftJump = (opponentPieces) => {
+            let temp = (mask << 4) & opponentPieces;
+            jumps |= (((temp & MASK_L3) << 3) | ((temp & MASK_L5) << 5)) & notOccupied;
+            temp = (((mask & MASK_L3) << 3) | ((mask & MASK_L5) << 5)) & opponentPieces;
+            jumps |= (temp << 4) & notOccupied;
+        };
+        if (player == mcts_1.Player.One) {
+            rightJump(this.blackPieces);
+            if (isKing) {
+                leftJump(this.blackPieces);
+            }
+        }
+        else if (player == mcts_1.Player.Two) {
+            leftJump(this.whitePieces);
+            if (isKing) {
+                rightJump(this.whitePieces);
+            }
+        }
+        for (let destination = 0; destination < 32; destination++) {
+            if (S[destination] & jumps) {
+                moves.push({ source: source, destination: destination, player: player });
+            }
+        }
+        return moves;
+    }
+    getHoppersWhite() {
+        if (this.player != mcts_1.Player.One) {
             return 0;
         }
         const notOccupied = ~(this.whitePieces | this.blackPieces);
@@ -74,23 +197,23 @@ class Bitboard {
         movers |= ((notOccupied & MASK_L3) << 3) & this.whitePieces;
         movers |= ((notOccupied & MASK_L5) << 5) & this.whitePieces;
         if (kingPieces) {
-            movers |= (notOccupied >> 4) & kingPieces;
-            movers |= ((notOccupied & MASK_R3) >> 3) & kingPieces;
-            movers |= ((notOccupied & MASK_R5) >> 5) & kingPieces;
+            movers |= (notOccupied >>> 4) & kingPieces;
+            movers |= ((notOccupied & MASK_R3) >>> 3) & kingPieces;
+            movers |= ((notOccupied & MASK_R5) >>> 5) & kingPieces;
         }
         return movers;
     }
-    getSteppersBlack() {
-        if (this.player != Player.Black) {
+    getHoppersBlack() {
+        if (this.player != mcts_1.Player.Two) {
             return 0;
         }
         const notOccupied = ~(this.whitePieces | this.blackPieces);
         const kingPieces = this.blackPieces & this.kings;
-        let movers = (notOccupied >> 4) & this.blackPieces;
-        movers |= ((notOccupied & MASK_R3) >> 3) & this.blackPieces;
-        movers |= ((notOccupied & MASK_R5) >> 5) & this.blackPieces;
+        let movers = (notOccupied >>> 4) & this.blackPieces;
+        movers |= ((notOccupied & MASK_R3) >>> 3) & this.blackPieces;
+        movers |= ((notOccupied & MASK_R5) >>> 5) & this.blackPieces;
         if (kingPieces) {
-            movers |= (notOccupied >> 4) & kingPieces;
+            movers |= (notOccupied << 4) & kingPieces;
             movers |= ((notOccupied & MASK_L3) << 3) & kingPieces;
             movers |= ((notOccupied & MASK_L5) << 5) & kingPieces;
         }
@@ -108,10 +231,10 @@ class Bitboard {
         temp = (((notOccupied & MASK_L3) << 3) | ((notOccupied & MASK_L5) << 5)) & blackPieces;
         movers |= (temp << 4) & whitePieces;
         if (kingPieces) {
-            temp = (notOccupied >> 4) & blackPieces;
-            movers |= (((temp & MASK_R3) >> 3) | ((temp & MASK_R5) >> 5)) & kingPieces;
-            temp = (((notOccupied & MASK_R3) >> 3) | ((notOccupied & MASK_R5) >> 5)) & blackPieces;
-            movers |= (temp >> 4) & kingPieces;
+            temp = (notOccupied >>> 4) & blackPieces;
+            movers |= (((temp & MASK_R3) >>> 3) | ((temp & MASK_R5) >>> 5)) & kingPieces;
+            temp = (((notOccupied & MASK_R3) >>> 3) | ((notOccupied & MASK_R5) >>> 5)) & blackPieces;
+            movers |= (temp >>> 4) & kingPieces;
         }
         return movers;
     }
@@ -122,10 +245,10 @@ class Bitboard {
         const notOccupied = ~(whitePieces | blackPieces);
         const kingPieces = blackPieces & kings;
         let movers = 0;
-        let temp = (notOccupied >> 4) & whitePieces;
-        movers |= (((temp & MASK_R3) >> 3) | ((temp & MASK_R5) >> 5)) & blackPieces;
-        temp = (((notOccupied & MASK_R3) >> 3) | ((notOccupied & MASK_R5) >> 5)) & whitePieces;
-        movers |= (temp >> 4) & blackPieces;
+        let temp = (notOccupied >>> 4) & whitePieces;
+        movers |= (((temp & MASK_R3) >>> 3) | ((temp & MASK_R5) >>> 5)) & blackPieces;
+        temp = (((notOccupied & MASK_R3) >>> 3) | ((notOccupied & MASK_R5) >>> 5)) & whitePieces;
+        movers |= (temp >>> 4) & blackPieces;
         if (kingPieces) {
             temp = (notOccupied << 4) & whitePieces;
             movers |= (((temp & MASK_L3) << 3) | ((temp & MASK_L5) << 5)) & kingPieces;
@@ -138,30 +261,30 @@ class Bitboard {
         let sourceMask = S[source];
         let destinationMask = S[destination];
         let isKing = sourceMask & this.kings;
-        if (this.player == Player.White) {
+        if (this.player == mcts_1.Player.One) {
             let canMove = (destinationMask << 4) & sourceMask;
             canMove |= ((destinationMask & MASK_L3) << 3) & sourceMask;
             canMove |= ((destinationMask & MASK_L5) << 5) & sourceMask;
             if (isKing) {
-                canMove |= (destinationMask >> 4) & sourceMask;
-                canMove |= ((destinationMask & MASK_R3) >> 3) & sourceMask;
-                canMove |= ((destinationMask & MASK_R5) >> 5) & sourceMask;
+                canMove |= (destinationMask >>> 4) & sourceMask;
+                canMove |= ((destinationMask & MASK_R3) >>> 3) & sourceMask;
+                canMove |= ((destinationMask & MASK_R5) >>> 5) & sourceMask;
             }
             if (canMove) {
                 let whitePieces = (this.whitePieces | destinationMask) ^ sourceMask;
                 let blackPieces = this.blackPieces;
                 let kings = isKing ? (this.kings | destinationMask) ^ sourceMask : this.kings | (destinationMask & 0xF);
-                let player = Player.Black;
+                let player = mcts_1.Player.Two;
                 return {
                     success: true,
                     board: new Bitboard(whitePieces, blackPieces, kings, player)
                 };
             }
         }
-        else if (this.player = Player.Black) {
-            let canMove = (destinationMask >> 4) & sourceMask;
-            canMove |= ((destinationMask & MASK_R3) >> 3) & sourceMask;
-            canMove |= ((destinationMask & MASK_R5) >> 5) & sourceMask;
+        else if (this.player = mcts_1.Player.Two) {
+            let canMove = (destinationMask >>> 4) & sourceMask;
+            canMove |= ((destinationMask & MASK_R3) >>> 3) & sourceMask;
+            canMove |= ((destinationMask & MASK_R5) >>> 5) & sourceMask;
             if (isKing) {
                 canMove |= (destinationMask << 4) & sourceMask;
                 canMove |= ((destinationMask & MASK_L3) << 3) & sourceMask;
@@ -171,7 +294,7 @@ class Bitboard {
                 let whitePieces = this.whitePieces;
                 let blackPieces = (this.blackPieces | destinationMask) ^ sourceMask;
                 let kings = this.kings | (destinationMask & 0xF0000000);
-                let player = Player.White;
+                let player = mcts_1.Player.One;
                 return {
                     success: true,
                     board: new Bitboard(whitePieces, blackPieces, kings, player)
@@ -184,7 +307,7 @@ class Bitboard {
         let sourceMask = S[source];
         let destinationMask = S[destination];
         let isKing = sourceMask & this.kings;
-        if (this.player == Player.White) {
+        if (this.player == mcts_1.Player.One) {
             let canJump;
             let temp = (destinationMask << 4) & this.blackPieces;
             canJump = (((temp & MASK_L3) << 3) | ((temp & MASK_L5) << 5)) & sourceMask;
@@ -193,12 +316,12 @@ class Bitboard {
                 canJump = (temp << 4) & sourceMask;
             }
             if (!canJump && isKing) {
-                temp = (destinationMask >> 4) & this.blackPieces;
-                canJump = (((temp & MASK_R3) >> 3) | ((temp & MASK_R5) >> 5)) & sourceMask;
+                temp = (destinationMask >>> 4) & this.blackPieces;
+                canJump = (((temp & MASK_R3) >>> 3) | ((temp & MASK_R5) >>> 5)) & sourceMask;
             }
             if (!canJump && isKing) {
-                temp = (((destinationMask & MASK_R3) >> 3) | ((destinationMask & MASK_R5) >> 5)) & this.blackPieces;
-                canJump = (temp << 4) & sourceMask;
+                temp = (((destinationMask & MASK_R3) >>> 3) | ((destinationMask & MASK_R5) >>> 5)) & this.blackPieces;
+                canJump = (temp >> 4) & sourceMask;
             }
             if (canJump) {
                 let whitePieces = (this.whitePieces | destinationMask) ^ sourceMask;
@@ -206,20 +329,20 @@ class Bitboard {
                 let kings = this.kings | (destinationMask & 0xF);
                 let canJumpAgain = (kings == this.kings) &&
                     (this.getJumpersWhite(whitePieces, blackPieces, kings) & destinationMask);
-                let player = canJumpAgain ? Player.White : Player.Black;
+                let player = canJumpAgain ? mcts_1.Player.One : mcts_1.Player.Two;
                 return {
                     success: true,
                     board: new Bitboard(whitePieces, blackPieces, kings, player)
                 };
             }
         }
-        else if (this.player == Player.Black) {
+        else if (this.player == mcts_1.Player.Two) {
             let canJump;
-            let temp = (destinationMask >> 4) & this.whitePieces;
-            canJump = (((temp & MASK_R3) >> 3) | ((temp & MASK_R5) >> 5)) & sourceMask;
+            let temp = (destinationMask >>> 4) & this.whitePieces;
+            canJump = (((temp & MASK_R3) >>> 3) | ((temp & MASK_R5) >>> 5)) & sourceMask;
             if (!canJump) {
-                temp = (((destinationMask & MASK_R3) >> 3) | ((destinationMask & MASK_R5) >> 5)) & this.whitePieces;
-                canJump = (temp >> 4) & sourceMask;
+                temp = (((destinationMask & MASK_R3) >>> 3) | ((destinationMask & MASK_R5) >>> 5)) & this.whitePieces;
+                canJump = (temp >>> 4) & sourceMask;
             }
             if (!canJump && isKing) {
                 temp = (destinationMask << 4) & this.whitePieces;
@@ -235,7 +358,7 @@ class Bitboard {
                 let kings = this.kings | (destinationMask & 0xF0000000);
                 let canJumpAgain = (kings == this.kings) &&
                     (this.getJumpersBlack(whitePieces, blackPieces, kings) & destinationMask);
-                let player = canJumpAgain ? Player.Black : Player.White;
+                let player = canJumpAgain ? mcts_1.Player.Two : mcts_1.Player.One;
                 return {
                     success: true,
                     board: new Bitboard(whitePieces, blackPieces, kings, player)
@@ -244,42 +367,73 @@ class Bitboard {
         }
         return { success: false };
     }
-    tryMove(source, destination) {
+    tryMove(move) {
         const failureResult = { success: false };
-        const sourceMask = S[source];
-        const destinationMask = S[destination];
+        const sourceMask = S[move.source];
+        const destinationMask = S[move.destination];
         const isKing = sourceMask & this.kings;
-        if (this.winner != Player.None) {
+        if (this.winner != mcts_1.Player.None) {
+            failureResult.message = 'Game is over';
             return failureResult;
         }
-        if (this.player != this.getPlayerAtSquare(source)) {
+        if (this.player != this.getPlayerAtSquare(move.source)) {
+            failureResult.message = 'Wrong player move';
             return failureResult;
         }
-        if (this.getPlayerAtSquare(destination) != Player.None) {
+        if (this.getPlayerAtSquare(move.destination) != mcts_1.Player.None) {
+            failureResult.message = 'Destination is not empty';
             return failureResult;
         }
-        let jumpers = this.player == Player.White ?
+        let jumpers = this.player == mcts_1.Player.One ?
             this.getJumpersWhite() :
             this.getJumpersBlack();
         if (jumpers) {
-            return (jumpers & sourceMask) ?
-                this.tryJump(source, destination) :
-                failureResult;
+            let shouldJump = jumpers & sourceMask;
+            if (shouldJump) {
+                return this.tryJump(move.source, move.destination);
+            }
+            else {
+                failureResult.message = 'Player should jump';
+                return failureResult;
+            }
         }
-        let steppers = this.player == Player.White ?
-            this.getSteppersWhite() :
-            this.getSteppersBlack();
-        if (steppers) {
-            return (steppers & sourceMask) ?
-                this.tryStep(source, destination) :
-                failureResult;
+        return this.tryStep(move.source, move.destination);
+    }
+    toString() {
+        let buffer = [];
+        let prependSpace = false;
+        let getPieceString = (index) => {
+            let mask = S[index];
+            let pieceString = '__';
+            if (mask & this.blackPieces) {
+                pieceString = (mask & this.kings) ? 'BK' : 'BP';
+            }
+            else if (mask & this.whitePieces) {
+                pieceString = (mask & this.kings) ? 'WK' : 'WP';
+            }
+            return pieceString;
+        };
+        for (let i = 0; i < exports.SQUARE_COUNT; i += 4) {
+            let lineBuffer = [];
+            for (let j = i; j < i + 4; j++) {
+                if (prependSpace) {
+                    lineBuffer.push(' ');
+                }
+                lineBuffer.push(getPieceString(j));
+                if (!prependSpace) {
+                    lineBuffer.push(' ');
+                }
+            }
+            lineBuffer.push('\n');
+            prependSpace = !prependSpace;
+            buffer.splice(0, 0, lineBuffer.join(' '));
         }
-        return failureResult;
+        return buffer.join(' ');
     }
 }
 exports.Bitboard = Bitboard;
 
-},{}],3:[function(require,module,exports){
+},{"./assert":2,"./mcts":9}],4:[function(require,module,exports){
 "use strict";
 const checkers_bitboard_1 = require('./checkers-bitboard');
 const ROW_LENGTH = 8;
@@ -318,16 +472,18 @@ function subtract(p1, p2) {
     };
 }
 class CheckersBoardController {
-    constructor(checkers, $element, $window, $timeout, $log) {
+    constructor(checkers, $element, $window, $timeout, $log, $scope) {
         this.checkers = checkers;
         this.$element = $element;
         this.$window = $window;
         this.$timeout = $timeout;
         this.$log = $log;
+        this.$scope = $scope;
         let canvasElement = $element[0].querySelector('canvas');
         this.canvas = angular.element(canvasElement);
         this.ctx = canvasElement.getContext('2d');
         this.canvas.on("mousedown", this.handleMouseDown.bind(this));
+        $scope.$watch(() => this.checkers.getCurrentBoard(), () => this.render());
     }
     $onInit() {
         this.squareSize = this.width / ROW_LENGTH;
@@ -399,11 +555,11 @@ class CheckersBoardController {
             let fillColor;
             let strokeColor;
             switch (bitboard.getPlayerAtSquare(i)) {
-                case checkers_bitboard_1.Player.White:
+                case checkers_bitboard_1.Player.One:
                     fillColor = 'white';
                     strokeColor = 'black';
                     break;
-                case checkers_bitboard_1.Player.Black:
+                case checkers_bitboard_1.Player.Two:
                     fillColor = 'black';
                     strokeColor = 'white';
                     break;
@@ -449,7 +605,7 @@ exports.CheckersBoard = {
     controller: CheckersBoardController
 };
 
-},{"./checkers-bitboard":2}],4:[function(require,module,exports){
+},{"./checkers-bitboard":3}],5:[function(require,module,exports){
 "use strict";
 const checkers_service_1 = require('./checkers-service');
 class GameMenuController {
@@ -509,7 +665,7 @@ exports.CheckersGameMenu = {
     controller: GameMenuController
 };
 
-},{"./checkers-service":7}],5:[function(require,module,exports){
+},{"./checkers-service":8}],6:[function(require,module,exports){
 "use strict";
 const checkers_service_1 = require('./checkers-service');
 class GameStatsController {
@@ -523,9 +679,9 @@ class GameStatsController {
     }
     getCurrentPlayer() {
         switch (this.checkers.getCurrentPlayer()) {
-            case checkers_service_1.Player.White:
+            case checkers_service_1.Player.One:
                 return 'White';
-            case checkers_service_1.Player.Black:
+            case checkers_service_1.Player.Two:
                 return 'Black';
             default:
                 throw new Error('Unexpected player');
@@ -569,7 +725,7 @@ exports.CheckersGameStats = {
     controller: GameStatsController
 };
 
-},{"./checkers-service":7}],6:[function(require,module,exports){
+},{"./checkers-service":8}],7:[function(require,module,exports){
 "use strict";
 const checkers_service_1 = require('./checkers-service');
 const checkers_board_1 = require('./checkers-board');
@@ -580,16 +736,22 @@ exports.CheckersModule.component('checkersBoard', checkers_board_1.CheckersBoard
 exports.CheckersModule.component('checkersGameStats', checkers_game_stats_1.CheckersGameStats);
 exports.CheckersModule.filter('timeFilter', checkers_game_stats_1.TimeFormatFilter);
 
-},{"./checkers-board":3,"./checkers-game-stats":5,"./checkers-service":7}],7:[function(require,module,exports){
+},{"./checkers-board":4,"./checkers-game-stats":6,"./checkers-service":8}],8:[function(require,module,exports){
 "use strict";
 const checkers_bitboard_1 = require('./checkers-bitboard');
+const mcts_1 = require('./mcts');
 var checkers_bitboard_2 = require('./checkers-bitboard');
 exports.Player = checkers_bitboard_2.Player;
 class Checkers {
-    constructor() {
+    constructor($timeout) {
+        this.$timeout = $timeout;
         this.boards = [];
         this.boards.push(new checkers_bitboard_1.Bitboard());
         this.startTime = (new Date()).getTime();
+        this.computeOptions = new mcts_1.ComputeOptions(10000, 5000);
+    }
+    getComputerPlayer() {
+        return checkers_bitboard_1.Player.Two;
     }
     getCurrentPlayer() {
         return this.getCurrentBoard().player;
@@ -602,13 +764,22 @@ class Checkers {
     }
     tryMove(source, destination) {
         let currentBoard = this.getCurrentBoard();
-        let { success, board } = currentBoard.tryMove(source, destination);
+        let { success, board } = currentBoard.tryMove({ source: source, destination: destination, player: currentBoard.player });
         if (success) {
             this.boards.push(board);
+            if (board.player == this.getComputerPlayer()) {
+                this.$timeout(this.doComputerPlayerMove.bind(this), 500);
+            }
             return true;
         }
         else {
             return false;
+        }
+    }
+    doComputerPlayerMove() {
+        let move = mcts_1.computeMove(this.getCurrentBoard(), this.computeOptions);
+        if (move) {
+            this.tryMove(move.source, move.destination);
         }
     }
 }
@@ -620,7 +791,142 @@ class CheckersProvider {
 }
 exports.CheckersProvider = CheckersProvider;
 
-},{"./checkers-bitboard":2}]},{},[1,2,3,4,5,6,7])
+},{"./checkers-bitboard":3,"./mcts":9}],9:[function(require,module,exports){
+"use strict";
+const asserts = require('./assert');
+(function (Player) {
+    Player[Player["None"] = 0] = "None";
+    Player[Player["One"] = 1] = "One";
+    Player[Player["Two"] = 2] = "Two";
+})(exports.Player || (exports.Player = {}));
+var Player = exports.Player;
+(function (Result) {
+    Result[Result["Win"] = 0] = "Win";
+    Result[Result["Lose"] = 1] = "Lose";
+    Result[Result["Draw"] = 2] = "Draw";
+})(exports.Result || (exports.Result = {}));
+var Result = exports.Result;
+class ComputeOptions {
+    constructor(maxIterations = 10000, maxTime = -1, verbose = false) {
+        this.maxIterations = maxIterations;
+        this.maxTime = maxTime;
+        this.verbose = verbose;
+    }
+}
+exports.ComputeOptions = ComputeOptions;
+class Node {
+    constructor(state, move, parent) {
+        this.state = state;
+        this.move = move;
+        this.parent = parent;
+        this.playerToMove = state.getPlayerToMove();
+        this.wins = 0;
+        this.visits = 0;
+        this.moves = state.getMoves();
+        this.uctScore = 0;
+        this.children = [];
+    }
+    hasUntriedMoves() {
+        return this.moves.length > 0;
+    }
+    getUntriedMove() {
+        asserts.assertNotEmpty(this.moves);
+        let index = Math.floor(Math.random() * this.moves.length);
+        return this.moves[index];
+    }
+    getBestChild() {
+        asserts.assertEmpty(this.moves);
+        asserts.assertNotEmpty(this.children);
+        return this.children.reduce((pv, cv) => pv.visits > cv.visits ? pv : cv);
+    }
+    selectChildViaUctScore() {
+        for (let child of this.children) {
+            let winRatio = child.wins / child.visits;
+            let confidence = Math.sqrt(2 * Math.log(this.visits) / child.visits);
+            child.uctScore = winRatio + confidence;
+        }
+        return this.children.reduce((pv, cv) => pv.uctScore > cv.uctScore ? pv : cv);
+    }
+    addChild(move, state) {
+        let newChild = new Node(state, move, this);
+        this.children.push(newChild);
+        let index = this.moves.indexOf(move);
+        this.moves.splice(index, 1);
+        return newChild;
+    }
+    update(result) {
+        switch (result) {
+            case Result.Draw:
+                this.wins += 0.5;
+                break;
+            case Result.Win:
+                this.wins++;
+            default:
+                break;
+        }
+        this.visits++;
+    }
+    hasChildren() {
+        return this.children.length > 0;
+    }
+}
+function computeTree(rootState, options) {
+    asserts.assert(options.maxIterations >= 0 || options.maxTime >= 0);
+    const root = new Node(rootState);
+    const startTime = new Date();
+    for (let i = 0; i < options.maxIterations || options.maxTime < 0; i++) {
+        let node = root;
+        let state = rootState;
+        while (!node.hasUntriedMoves() && node.hasChildren()) {
+            node = node.selectChildViaUctScore();
+            state = state.doMove(node.move);
+        }
+        if (node.hasUntriedMoves()) {
+            let move = node.getUntriedMove();
+            state = state.doMove(move);
+            node = node.addChild(move, state);
+        }
+        while (state.hasMoves()) {
+            state = state.doRandomMove();
+        }
+        while (node) {
+            node.update(state.getResult(node.playerToMove));
+            node = node.parent;
+        }
+        if (options.maxTime > 0) {
+            let elapsedTime = (new Date().getTime()) - startTime.getTime();
+            if (elapsedTime >= options.maxTime) {
+                break;
+            }
+        }
+    }
+    return root;
+}
+function computeMove(rootState, options) {
+    let moves = rootState.getMoves();
+    if (moves.length == 1) {
+        return moves[0];
+    }
+    console.time('computeTree');
+    let root = computeTree(rootState, options);
+    console.timeEnd('computeTree');
+    let gamesPlayed = root.visits;
+    console.log(`${gamesPlayed} games played`);
+    let bestScore = -1;
+    let bestMove;
+    for (let node of root.children) {
+        let expectedSuccessRate = (node.wins + 1) / (node.visits + 2);
+        if (expectedSuccessRate > bestScore) {
+            bestMove = node.move;
+            bestScore = expectedSuccessRate;
+        }
+    }
+    console.log(`${bestScore} is the best score`);
+    return bestMove;
+}
+exports.computeMove = computeMove;
+
+},{"./assert":2}]},{},[1,2,3,4,5,6,7,8,9])
 
 
 //# sourceMappingURL=bundle.js.map
