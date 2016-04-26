@@ -119,7 +119,7 @@ export class Bitboard implements GameState {
         const notOccupied = ~(this.whitePieces | this.blackPieces);
         const isKing = mask & this.kings;
         const player = this.player;
-        let hops = 0;
+        var hops = 0;
 
         if (isKing || (player == Player.One)) {
             hops |= (mask >>> 4) & notOccupied;
@@ -141,6 +141,24 @@ export class Bitboard implements GameState {
 
         return moves;
     }
+    
+    private rightJump(opponentPieces:number, notOccupied:number, mask:number):number {
+        var jumps = 0;
+        let temp = (mask >>> 4) & opponentPieces;
+        jumps |= (((temp & MASK_R3) >>> 3) | ((temp & MASK_R5) >>> 5)) & notOccupied;
+        temp = (((mask & MASK_R3) >>> 3) | ((mask & MASK_R5) >>> 5)) & opponentPieces;
+        jumps |= (temp >>> 4) & notOccupied;
+        return jumps;
+    }
+    
+    private leftJump(opponentPieces:number, notOccupied:number, mask:number):number {
+        var jumps = 0;
+        let temp = (mask << 4) & opponentPieces;
+        jumps |= (((temp & MASK_L3) << 3) | ((temp & MASK_L5) << 5)) & notOccupied;
+        temp = (((mask & MASK_L3) << 3) | ((mask & MASK_L5) << 5)) & opponentPieces;
+        jumps |= (temp << 4) & notOccupied;
+        return jumps;
+    }
 
     private getJumpMoves(source: number): CheckersMove[] {
         let moves: CheckersMove[] = [];
@@ -148,31 +166,17 @@ export class Bitboard implements GameState {
         const notOccupied = ~(this.whitePieces | this.blackPieces);
         const isKing = mask & this.kings;
         const player = this.player;
-        let jumps = 0;
-
-        let rightJump = (opponentPieces: number) => {
-            let temp = (mask >>> 4) & opponentPieces;
-            jumps |= (((temp & MASK_R3) >>> 3) | ((temp & MASK_R5) >>> 5)) & notOccupied;
-            temp = (((mask & MASK_R3) >>> 3) | ((mask & MASK_R5) >>> 5)) & opponentPieces;
-            jumps |= (temp >>> 4) & notOccupied;
-        }
-
-        let leftJump = (opponentPieces: number) => {
-            let temp = (mask << 4) & opponentPieces;
-            jumps |= (((temp & MASK_L3) << 3) | ((temp & MASK_L5) << 5)) & notOccupied;
-            temp = (((mask & MASK_L3) << 3) | ((mask & MASK_L5) << 5)) & opponentPieces;
-            jumps |= (temp << 4) & notOccupied;
-        }
+        var jumps = 0;
 
         if (player == Player.One) {
-            rightJump(this.blackPieces);
+            jumps |= this.rightJump(this.blackPieces, notOccupied, mask);
             if (isKing) {
-                leftJump(this.blackPieces);
+                jumps |= this.leftJump(this.blackPieces, notOccupied, mask);
             }
         } else if (player == Player.Two) {
-            leftJump(this.whitePieces);
+            jumps |= this.leftJump(this.whitePieces, notOccupied, mask);
             if (isKing) {
-                rightJump(this.whitePieces);
+                jumps |= this.rightJump(this.whitePieces, notOccupied, mask);
             }
         }
 
@@ -194,7 +198,7 @@ export class Bitboard implements GameState {
 
         const notOccupied = ~(this.whitePieces | this.blackPieces);
         const kingPieces = this.whitePieces & this.kings;
-        let movers = (notOccupied << 4) & this.whitePieces;
+        var movers = (notOccupied << 4) & this.whitePieces;
         movers |= ((notOccupied & MASK_L3) << 3) & this.whitePieces;
         movers |= ((notOccupied & MASK_L5) << 5) & this.whitePieces;
         if (kingPieces) {
@@ -213,7 +217,7 @@ export class Bitboard implements GameState {
 
         const notOccupied = ~(this.whitePieces | this.blackPieces);
         const kingPieces = this.blackPieces & this.kings;
-        let movers = (notOccupied >>> 4) & this.blackPieces;
+        var movers = (notOccupied >>> 4) & this.blackPieces;
         movers |= ((notOccupied & MASK_R3) >>> 3) & this.blackPieces;
         movers |= ((notOccupied & MASK_R5) >>> 5) & this.blackPieces;
         if (kingPieces) {
@@ -230,7 +234,7 @@ export class Bitboard implements GameState {
         kings = kings || this.kings;
         const notOccupied = ~(whitePieces | blackPieces);
         const kingPieces = whitePieces & kings;
-        let movers = 0;
+        var movers = 0;
         let temp = (notOccupied << 4) & blackPieces;
         movers |= (((temp & MASK_L3) << 3) | ((temp & MASK_L5) << 5)) & whitePieces;
         temp = (((notOccupied & MASK_L3) << 3) | ((notOccupied & MASK_L5) << 5)) & blackPieces;
@@ -251,7 +255,7 @@ export class Bitboard implements GameState {
         kings = kings || this.kings;
         const notOccupied = ~(whitePieces | blackPieces);
         const kingPieces = blackPieces & kings;
-        let movers = 0;
+        var movers = 0;
         let temp = (notOccupied >>> 4) & whitePieces;
         movers |= (((temp & MASK_R3) >>> 3) | ((temp & MASK_R5) >>> 5)) & blackPieces;
         temp = (((notOccupied & MASK_R3) >>> 3) | ((notOccupied & MASK_R5) >>> 5)) & whitePieces;
@@ -275,7 +279,7 @@ export class Bitboard implements GameState {
         let isKing = sourceMask & this.kings;
 
         if (this.player == Player.One) {
-            let canMove = (destinationMask << 4) & sourceMask;
+            var canMove = (destinationMask << 4) & sourceMask;
             canMove |= ((destinationMask & MASK_L3) << 3) & sourceMask;
             canMove |= ((destinationMask & MASK_L5) << 5) & sourceMask;
             if (isKing) {
@@ -295,7 +299,7 @@ export class Bitboard implements GameState {
                 };
             }
         } else if (this.player = Player.Two) {
-            let canMove = (destinationMask >>> 4) & sourceMask;
+            var canMove = (destinationMask >>> 4) & sourceMask;
             canMove |= ((destinationMask & MASK_R3) >>> 3) & sourceMask;
             canMove |= ((destinationMask & MASK_R5) >>> 5) & sourceMask;
             if (isKing) {
