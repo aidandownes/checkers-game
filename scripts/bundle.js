@@ -349,7 +349,7 @@ class Bitboard {
                 let kings = (this.kings & sourceMask) ?
                     (this.kings | destinationMask) ^ sourceMask :
                     this.kings | (destinationMask & 0xF);
-                let canJumpAgain = (kings == this.kings) &&
+                let canJumpAgain = !(destinationMask & 0xF) &&
                     (this.getJumpersWhite(whitePieces, blackPieces, kings) & destinationMask);
                 let player = canJumpAgain ? game_model_1.Player.One : game_model_1.Player.Two;
                 return {
@@ -380,7 +380,7 @@ class Bitboard {
                 let kings = (this.kings & sourceMask) ?
                     (this.kings | destinationMask) ^ sourceMask :
                     this.kings | (destinationMask & 0xF0000000);
-                let canJumpAgain = (kings == this.kings) &&
+                let canJumpAgain = !(destinationMask & 0xF0000000) &&
                     (this.getJumpersBlack(whitePieces, blackPieces, kings) & destinationMask);
                 let player = canJumpAgain ? game_model_1.Player.Two : game_model_1.Player.One;
                 return {
@@ -1096,13 +1096,17 @@ class UctSearch {
         this.maxIterations = maxIterations;
     }
     search(rootState) {
+        console.time('search');
         let root = new Node(null, rootState);
         for (let i = 0; i < this.maxIterations; i++) {
             let current = this.treePolicy(root, rootState);
             let reward = this.defaultPolicy(current.state);
             this.backup(current, reward);
         }
-        return this.bestChild(root, 0).move;
+        let bestChild = this.bestChild(root, 0);
+        console.timeEnd('search');
+        console.log(`(${bestChild.wins} wins / ${bestChild.visits} visits) = ${bestChild.wins / bestChild.visits}`);
+        return bestChild.move;
     }
     treePolicy(node, state) {
         while (!node.isTerminal) {

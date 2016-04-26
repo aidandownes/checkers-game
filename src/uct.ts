@@ -49,15 +49,19 @@ export class UctSearch {
     }
     
     search(rootState:GameState): Move {
+        console.time('search');
         let root = new Node(null, rootState);
-        
+       
         for (let i = 0; i < this.maxIterations; i++) {
             let current = this.treePolicy(root, rootState);
             let reward = this.defaultPolicy(current.state);
             this.backup(current, reward);
         }
         
-        return this.bestChild(root, 0).move;
+        let bestChild = this.bestChild(root, 0);
+        console.timeEnd('search');
+        console.log(`(${bestChild.wins} wins / ${bestChild.visits} visits) = ${bestChild.wins/bestChild.visits}`);
+        return bestChild.move;
     }
     
     private treePolicy(node:Node, state:GameState): Node {

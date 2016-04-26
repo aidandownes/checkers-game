@@ -308,7 +308,7 @@ class Bitboard {
                 let kings = (this.kings & sourceMask) ?
                     (this.kings | destinationMask) ^ sourceMask :
                     this.kings | (destinationMask & 0xF);
-                let canJumpAgain = (kings == this.kings) &&
+                let canJumpAgain = !(destinationMask & 0xF) &&
                     (this.getJumpersWhite(whitePieces, blackPieces, kings) & destinationMask);
                 let player = canJumpAgain ? game_model_1.Player.One : game_model_1.Player.Two;
                 return {
@@ -339,7 +339,7 @@ class Bitboard {
                 let kings = (this.kings & sourceMask) ?
                     (this.kings | destinationMask) ^ sourceMask :
                     this.kings | (destinationMask & 0xF0000000);
-                let canJumpAgain = (kings == this.kings) &&
+                let canJumpAgain = !(destinationMask & 0xF0000000) &&
                     (this.getJumpersBlack(whitePieces, blackPieces, kings) & destinationMask);
                 let player = canJumpAgain ? game_model_1.Player.Two : game_model_1.Player.One;
                 return {
