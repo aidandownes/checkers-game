@@ -131,6 +131,9 @@ class CheckersBoardController {
                 default:
                     continue;
             }
+            if (bitboard.isKing(i)) {
+                strokeColor = 'red';
+            }
             if (i == this.dragTarget) {
                 let dragTranslation = subtract(translation, this.dragTranslation);
                 drawDragTarget = this.drawPiece.bind(this, this.dragPosition, fillColor, strokeColor, dragTranslation);

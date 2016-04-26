@@ -120,6 +120,11 @@ export class Bitboard implements GameState {
             return Player.None;
         }
     }
+    
+    isKing(square:number) : boolean {
+        const mask = S[square];
+        return !!(this.kings & mask);
+    }
 
     private getHopMoves(source: number): CheckersMove[] {
         let moves: CheckersMove[] = [];
@@ -300,7 +305,9 @@ export class Bitboard implements GameState {
             if (canMove) {
                 let whitePieces = (this.whitePieces | destinationMask) ^ sourceMask;
                 let blackPieces = this.blackPieces
-                let kings = isKing ? (this.kings | destinationMask) ^ sourceMask : this.kings | (destinationMask & 0xF)
+                let kings = isKing ? 
+                    (this.kings | destinationMask) ^ sourceMask : 
+                    this.kings | (destinationMask & 0xF);
                 let player = Player.Two;
                 return {
                     success: true,
@@ -320,7 +327,9 @@ export class Bitboard implements GameState {
             if (canMove) {
                 let whitePieces = this.whitePieces
                 let blackPieces = (this.blackPieces | destinationMask) ^ sourceMask;
-                let kings = this.kings | (destinationMask & 0xF0000000);
+                let kings = isKing? 
+                    (this.kings | destinationMask) ^ sourceMask :
+                    this.kings | (destinationMask & 0xF0000000);
                 let player = Player.One;
                 return {
                     success: true,

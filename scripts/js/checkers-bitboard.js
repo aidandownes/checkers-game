@@ -92,6 +92,10 @@ class Bitboard {
             return game_model_1.Player.None;
         }
     }
+    isKing(square) {
+        const mask = S[square];
+        return !!(this.kings & mask);
+    }
     getHopMoves(source) {
         let moves = [];
         const mask = S[source];
@@ -244,7 +248,9 @@ class Bitboard {
             if (canMove) {
                 let whitePieces = (this.whitePieces | destinationMask) ^ sourceMask;
                 let blackPieces = this.blackPieces;
-                let kings = isKing ? (this.kings | destinationMask) ^ sourceMask : this.kings | (destinationMask & 0xF);
+                let kings = isKing ?
+                    (this.kings | destinationMask) ^ sourceMask :
+                    this.kings | (destinationMask & 0xF);
                 let player = game_model_1.Player.Two;
                 return {
                     success: true,
@@ -264,7 +270,9 @@ class Bitboard {
             if (canMove) {
                 let whitePieces = this.whitePieces;
                 let blackPieces = (this.blackPieces | destinationMask) ^ sourceMask;
-                let kings = this.kings | (destinationMask & 0xF0000000);
+                let kings = isKing ?
+                    (this.kings | destinationMask) ^ sourceMask :
+                    this.kings | (destinationMask & 0xF0000000);
                 let player = game_model_1.Player.One;
                 return {
                     success: true,

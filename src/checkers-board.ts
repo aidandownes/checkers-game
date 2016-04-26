@@ -186,6 +186,9 @@ class CheckersBoardController {
                     continue;
             }
             
+            if (bitboard.isKing(i)) {
+                strokeColor = 'red';
+            }
             
             // Draw drag target later.
             if (i == this.dragTarget) {
