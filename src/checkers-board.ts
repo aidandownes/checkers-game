@@ -1,5 +1,6 @@
 import {Checkers} from './checkers-service';
-import {Bitboard, SQUARE_COUNT, Player} from './checkers-bitboard';
+import {Bitboard, SQUARE_COUNT} from './checkers-bitboard';
+import {Player} from './game-model';
 
 const ROW_LENGTH = 8;
 const COLUMN_LENGTH = 8;

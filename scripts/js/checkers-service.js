@@ -1,18 +1,17 @@
 "use strict";
 const checkers_bitboard_1 = require('./checkers-bitboard');
-const mcts_1 = require('./mcts');
-var checkers_bitboard_2 = require('./checkers-bitboard');
-exports.Player = checkers_bitboard_2.Player;
+const uct_1 = require('./uct');
+const game_model_1 = require('./game-model');
 class Checkers {
     constructor($timeout) {
         this.$timeout = $timeout;
         this.boards = [];
         this.boards.push(new checkers_bitboard_1.Bitboard());
         this.startTime = (new Date()).getTime();
-        this.computeOptions = new mcts_1.ComputeOptions(10000, 5000);
+        this.uctSearch = new uct_1.UctSearch(1000);
     }
     getComputerPlayer() {
-        return checkers_bitboard_1.Player.Two;
+        return game_model_1.Player.Two;
     }
     getCurrentPlayer() {
         return this.getCurrentBoard().player;
@@ -38,7 +37,7 @@ class Checkers {
         }
     }
     doComputerPlayerMove() {
-        let move = mcts_1.computeMove(this.getCurrentBoard(), this.computeOptions);
+        let move = this.uctSearch.search(this.getCurrentBoard());
         if (move) {
             this.tryMove(move.source, move.destination);
         }

@@ -1,5 +1,5 @@
 "use strict";
-const checkers_service_1 = require('./checkers-service');
+const game_model_1 = require('./game-model');
 class GameStatsController {
     constructor(checkers, $interval) {
         this.checkers = checkers;
@@ -11,9 +11,9 @@ class GameStatsController {
     }
     getCurrentPlayer() {
         switch (this.checkers.getCurrentPlayer()) {
-            case checkers_service_1.Player.One:
+            case game_model_1.Player.One:
                 return 'White';
-            case checkers_service_1.Player.Two:
+            case game_model_1.Player.Two:
                 return 'Black';
             default:
                 throw new Error('Unexpected player');

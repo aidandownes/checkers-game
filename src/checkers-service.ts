@@ -1,19 +1,18 @@
 /// <reference path="../typings/browser.d.ts" />
-import {Bitboard, Player, CheckersMove} from './checkers-bitboard';
-import {computeMove, ComputeOptions} from './mcts';
-
-export {Player} from './checkers-bitboard';
+import {Bitboard, CheckersMove} from './checkers-bitboard';
+import {UctSearch} from './uct';
+import {Player} from './game-model';
 
 export class Checkers {
     private boards: Bitboard[];
     private startTime: number;
-    private computeOptions: ComputeOptions;
+    private uctSearch: UctSearch;
 
     constructor(private $timeout:ng.ITimeoutService) {
         this.boards = [];
         this.boards.push(new Bitboard());
         this.startTime = (new Date()).getTime();
-        this.computeOptions = new ComputeOptions(10000, 5000);
+        this.uctSearch = new UctSearch(1000);
     }
     
     getComputerPlayer() {
@@ -49,7 +48,7 @@ export class Checkers {
     }
     
     doComputerPlayerMove() {
-        let move = <CheckersMove>computeMove(this.getCurrentBoard(), this.computeOptions);
+        let move = <CheckersMove>this.uctSearch.search(this.getCurrentBoard());
         if (move) {
            this.tryMove(move.source, move.destination);
         }
@@ -57,7 +56,6 @@ export class Checkers {
 }
 
 export class CheckersProvider {
-
     $get($injector: ng.auto.IInjectorService) {
         return $injector.instantiate(Checkers);
     }

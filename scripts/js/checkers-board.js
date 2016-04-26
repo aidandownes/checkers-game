@@ -1,5 +1,6 @@
 "use strict";
 const checkers_bitboard_1 = require('./checkers-bitboard');
+const game_model_1 = require('./game-model');
 const ROW_LENGTH = 8;
 const COLUMN_LENGTH = 8;
 const BoardSquareArray = (function () {
@@ -119,11 +120,11 @@ class CheckersBoardController {
             let fillColor;
             let strokeColor;
             switch (bitboard.getPlayerAtSquare(i)) {
-                case checkers_bitboard_1.Player.One:
+                case game_model_1.Player.One:
                     fillColor = 'white';
                     strokeColor = 'black';
                     break;
-                case checkers_bitboard_1.Player.Two:
+                case game_model_1.Player.Two:
                     fillColor = 'black';
                     strokeColor = 'white';
                     break;

@@ -40,10 +40,8 @@ exports.assertEmpty = assertEmpty;
 
 },{}],3:[function(require,module,exports){
 "use strict";
-const mcts_1 = require('./mcts');
+const game_model_1 = require('./game-model');
 const Asserts = require('./assert');
-var mcts_2 = require('./mcts');
-exports.Player = mcts_2.Player;
 const S = (function () {
     let squares = [];
     for (let i = 0; i < 32; i++) {
@@ -57,18 +55,18 @@ const MASK_R3 = S[28] | S[29] | S[30] | S[20] | S[21] | S[22] | S[12] | S[13] | 
 const MASK_R5 = S[25] | S[26] | S[27] | S[17] | S[18] | S[19] | S[9] | S[10] | S[11];
 exports.SQUARE_COUNT = 32;
 class Bitboard {
-    constructor(whitePieces = 0xFFF00000, blackPieces = 0x00000FFF, kings = 0, player = mcts_1.Player.One) {
+    constructor(whitePieces = 0xFFF00000, blackPieces = 0x00000FFF, kings = 0, player = game_model_1.Player.One) {
         this.whitePieces = whitePieces;
         this.blackPieces = blackPieces;
         this.kings = kings;
         this.player = player;
-        if (this.player == mcts_1.Player.One) {
+        if (this.player == game_model_1.Player.One) {
             let canPlay = this.getJumpersWhite() || this.getHoppersWhite();
-            this.winner = canPlay ? mcts_1.Player.None : mcts_1.Player.Two;
+            this.winner = canPlay ? game_model_1.Player.None : game_model_1.Player.Two;
         }
         else {
             let canPlay = this.getJumpersBlack() || this.getHoppersBlack();
-            this.winner = canPlay ? mcts_1.Player.None : mcts_1.Player.One;
+            this.winner = canPlay ? game_model_1.Player.None : game_model_1.Player.One;
         }
         Asserts.assert((blackPieces & whitePieces) == 0);
     }
@@ -107,22 +105,32 @@ class Bitboard {
         return this.moves;
     }
     getResult(player) {
-        Asserts.assert(this.winner == mcts_1.Player.One || this.winner == mcts_1.Player.Two);
-        return this.winner == player ? mcts_1.Result.Win : mcts_1.Result.Lose;
+        Asserts.assert(this.winner == game_model_1.Player.One || this.winner == game_model_1.Player.Two);
+        return this.winner == player ? game_model_1.Result.Win : game_model_1.Result.Lose;
     }
     getPlayerToMove() {
         return this.player;
     }
+    getOpponent(player) {
+        switch (player) {
+            case game_model_1.Player.One:
+                return game_model_1.Player.Two;
+            case game_model_1.Player.Two:
+                return game_model_1.Player.One;
+            default:
+                return game_model_1.Player.None;
+        }
+    }
     getPlayerAtSquare(square) {
         const mask = S[square];
         if (this.whitePieces & mask) {
-            return mcts_1.Player.One;
+            return game_model_1.Player.One;
         }
         else if (this.blackPieces & mask) {
-            return mcts_1.Player.Two;
+            return game_model_1.Player.Two;
         }
         else {
-            return mcts_1.Player.None;
+            return game_model_1.Player.None;
         }
     }
     getHopMoves(source) {
@@ -131,13 +139,13 @@ class Bitboard {
         const notOccupied = ~(this.whitePieces | this.blackPieces);
         const isKing = mask & this.kings;
         const player = this.player;
-        let hops = 0;
-        if (isKing || (player == mcts_1.Player.One)) {
+        var hops = 0;
+        if (isKing || (player == game_model_1.Player.One)) {
             hops |= (mask >>> 4) & notOccupied;
             hops |= ((mask & MASK_R3) >>> 3) & notOccupied;
             hops |= ((mask & MASK_R5) >>> 5) & notOccupied;
         }
-        if (isKing || (player == mcts_1.Player.Two)) {
+        if (isKing || (player == game_model_1.Player.Two)) {
             hops |= (mask << 4) & notOccupied;
             hops |= ((mask & MASK_L3) << 3) & notOccupied;
             hops |= ((mask & MASK_L5) << 5) & notOccupied;
@@ -149,35 +157,39 @@ class Bitboard {
         }
         return moves;
     }
+    rightJump(opponentPieces, notOccupied, mask) {
+        var jumps = 0;
+        let temp = (mask >>> 4) & opponentPieces;
+        jumps |= (((temp & MASK_R3) >>> 3) | ((temp & MASK_R5) >>> 5)) & notOccupied;
+        temp = (((mask & MASK_R3) >>> 3) | ((mask & MASK_R5) >>> 5)) & opponentPieces;
+        jumps |= (temp >>> 4) & notOccupied;
+        return jumps;
+    }
+    leftJump(opponentPieces, notOccupied, mask) {
+        var jumps = 0;
+        let temp = (mask << 4) & opponentPieces;
+        jumps |= (((temp & MASK_L3) << 3) | ((temp & MASK_L5) << 5)) & notOccupied;
+        temp = (((mask & MASK_L3) << 3) | ((mask & MASK_L5) << 5)) & opponentPieces;
+        jumps |= (temp << 4) & notOccupied;
+        return jumps;
+    }
     getJumpMoves(source) {
         let moves = [];
         const mask = S[source];
         const notOccupied = ~(this.whitePieces | this.blackPieces);
         const isKing = mask & this.kings;
         const player = this.player;
-        let jumps = 0;
-        let rightJump = (opponentPieces) => {
-            let temp = (mask >>> 4) & opponentPieces;
-            jumps |= (((temp & MASK_R3) >>> 3) | ((temp & MASK_R5) >>> 5)) & notOccupied;
-            temp = (((mask & MASK_R3) >>> 3) | ((mask & MASK_R5) >>> 5)) & opponentPieces;
-            jumps |= (temp >>> 4) & notOccupied;
-        };
-        let leftJump = (opponentPieces) => {
-            let temp = (mask << 4) & opponentPieces;
-            jumps |= (((temp & MASK_L3) << 3) | ((temp & MASK_L5) << 5)) & notOccupied;
-            temp = (((mask & MASK_L3) << 3) | ((mask & MASK_L5) << 5)) & opponentPieces;
-            jumps |= (temp << 4) & notOccupied;
-        };
-        if (player == mcts_1.Player.One) {
-            rightJump(this.blackPieces);
+        var jumps = 0;
+        if (player == game_model_1.Player.One) {
+            jumps |= this.rightJump(this.blackPieces, notOccupied, mask);
             if (isKing) {
-                leftJump(this.blackPieces);
+                jumps |= this.leftJump(this.blackPieces, notOccupied, mask);
             }
         }
-        else if (player == mcts_1.Player.Two) {
-            leftJump(this.whitePieces);
+        else if (player == game_model_1.Player.Two) {
+            jumps |= this.leftJump(this.whitePieces, notOccupied, mask);
             if (isKing) {
-                rightJump(this.whitePieces);
+                jumps |= this.rightJump(this.whitePieces, notOccupied, mask);
             }
         }
         for (let destination = 0; destination < 32; destination++) {
@@ -188,12 +200,12 @@ class Bitboard {
         return moves;
     }
     getHoppersWhite() {
-        if (this.player != mcts_1.Player.One) {
+        if (this.player != game_model_1.Player.One) {
             return 0;
         }
         const notOccupied = ~(this.whitePieces | this.blackPieces);
         const kingPieces = this.whitePieces & this.kings;
-        let movers = (notOccupied << 4) & this.whitePieces;
+        var movers = (notOccupied << 4) & this.whitePieces;
         movers |= ((notOccupied & MASK_L3) << 3) & this.whitePieces;
         movers |= ((notOccupied & MASK_L5) << 5) & this.whitePieces;
         if (kingPieces) {
@@ -204,12 +216,12 @@ class Bitboard {
         return movers;
     }
     getHoppersBlack() {
-        if (this.player != mcts_1.Player.Two) {
+        if (this.player != game_model_1.Player.Two) {
             return 0;
         }
         const notOccupied = ~(this.whitePieces | this.blackPieces);
         const kingPieces = this.blackPieces & this.kings;
-        let movers = (notOccupied >>> 4) & this.blackPieces;
+        var movers = (notOccupied >>> 4) & this.blackPieces;
         movers |= ((notOccupied & MASK_R3) >>> 3) & this.blackPieces;
         movers |= ((notOccupied & MASK_R5) >>> 5) & this.blackPieces;
         if (kingPieces) {
@@ -225,7 +237,7 @@ class Bitboard {
         kings = kings || this.kings;
         const notOccupied = ~(whitePieces | blackPieces);
         const kingPieces = whitePieces & kings;
-        let movers = 0;
+        var movers = 0;
         let temp = (notOccupied << 4) & blackPieces;
         movers |= (((temp & MASK_L3) << 3) | ((temp & MASK_L5) << 5)) & whitePieces;
         temp = (((notOccupied & MASK_L3) << 3) | ((notOccupied & MASK_L5) << 5)) & blackPieces;
@@ -244,7 +256,7 @@ class Bitboard {
         kings = kings || this.kings;
         const notOccupied = ~(whitePieces | blackPieces);
         const kingPieces = blackPieces & kings;
-        let movers = 0;
+        var movers = 0;
         let temp = (notOccupied >>> 4) & whitePieces;
         movers |= (((temp & MASK_R3) >>> 3) | ((temp & MASK_R5) >>> 5)) & blackPieces;
         temp = (((notOccupied & MASK_R3) >>> 3) | ((notOccupied & MASK_R5) >>> 5)) & whitePieces;
@@ -261,8 +273,8 @@ class Bitboard {
         let sourceMask = S[source];
         let destinationMask = S[destination];
         let isKing = sourceMask & this.kings;
-        if (this.player == mcts_1.Player.One) {
-            let canMove = (destinationMask << 4) & sourceMask;
+        if (this.player == game_model_1.Player.One) {
+            var canMove = (destinationMask << 4) & sourceMask;
             canMove |= ((destinationMask & MASK_L3) << 3) & sourceMask;
             canMove |= ((destinationMask & MASK_L5) << 5) & sourceMask;
             if (isKing) {
@@ -274,15 +286,15 @@ class Bitboard {
                 let whitePieces = (this.whitePieces | destinationMask) ^ sourceMask;
                 let blackPieces = this.blackPieces;
                 let kings = isKing ? (this.kings | destinationMask) ^ sourceMask : this.kings | (destinationMask & 0xF);
-                let player = mcts_1.Player.Two;
+                let player = game_model_1.Player.Two;
                 return {
                     success: true,
                     board: new Bitboard(whitePieces, blackPieces, kings, player)
                 };
             }
         }
-        else if (this.player = mcts_1.Player.Two) {
-            let canMove = (destinationMask >>> 4) & sourceMask;
+        else if (this.player = game_model_1.Player.Two) {
+            var canMove = (destinationMask >>> 4) & sourceMask;
             canMove |= ((destinationMask & MASK_R3) >>> 3) & sourceMask;
             canMove |= ((destinationMask & MASK_R5) >>> 5) & sourceMask;
             if (isKing) {
@@ -294,7 +306,7 @@ class Bitboard {
                 let whitePieces = this.whitePieces;
                 let blackPieces = (this.blackPieces | destinationMask) ^ sourceMask;
                 let kings = this.kings | (destinationMask & 0xF0000000);
-                let player = mcts_1.Player.One;
+                let player = game_model_1.Player.One;
                 return {
                     success: true,
                     board: new Bitboard(whitePieces, blackPieces, kings, player)
@@ -307,7 +319,7 @@ class Bitboard {
         let sourceMask = S[source];
         let destinationMask = S[destination];
         let isKing = sourceMask & this.kings;
-        if (this.player == mcts_1.Player.One) {
+        if (this.player == game_model_1.Player.One) {
             let canJump;
             let temp = (destinationMask << 4) & this.blackPieces;
             canJump = (((temp & MASK_L3) << 3) | ((temp & MASK_L5) << 5)) & sourceMask;
@@ -329,14 +341,14 @@ class Bitboard {
                 let kings = this.kings | (destinationMask & 0xF);
                 let canJumpAgain = (kings == this.kings) &&
                     (this.getJumpersWhite(whitePieces, blackPieces, kings) & destinationMask);
-                let player = canJumpAgain ? mcts_1.Player.One : mcts_1.Player.Two;
+                let player = canJumpAgain ? game_model_1.Player.One : game_model_1.Player.Two;
                 return {
                     success: true,
                     board: new Bitboard(whitePieces, blackPieces, kings, player)
                 };
             }
         }
-        else if (this.player == mcts_1.Player.Two) {
+        else if (this.player == game_model_1.Player.Two) {
             let canJump;
             let temp = (destinationMask >>> 4) & this.whitePieces;
             canJump = (((temp & MASK_R3) >>> 3) | ((temp & MASK_R5) >>> 5)) & sourceMask;
@@ -358,7 +370,7 @@ class Bitboard {
                 let kings = this.kings | (destinationMask & 0xF0000000);
                 let canJumpAgain = (kings == this.kings) &&
                     (this.getJumpersBlack(whitePieces, blackPieces, kings) & destinationMask);
-                let player = canJumpAgain ? mcts_1.Player.Two : mcts_1.Player.One;
+                let player = canJumpAgain ? game_model_1.Player.Two : game_model_1.Player.One;
                 return {
                     success: true,
                     board: new Bitboard(whitePieces, blackPieces, kings, player)
@@ -372,7 +384,7 @@ class Bitboard {
         const sourceMask = S[move.source];
         const destinationMask = S[move.destination];
         const isKing = sourceMask & this.kings;
-        if (this.winner != mcts_1.Player.None) {
+        if (this.winner != game_model_1.Player.None) {
             failureResult.message = 'Game is over';
             return failureResult;
         }
@@ -380,11 +392,11 @@ class Bitboard {
             failureResult.message = 'Wrong player move';
             return failureResult;
         }
-        if (this.getPlayerAtSquare(move.destination) != mcts_1.Player.None) {
+        if (this.getPlayerAtSquare(move.destination) != game_model_1.Player.None) {
             failureResult.message = 'Destination is not empty';
             return failureResult;
         }
-        let jumpers = this.player == mcts_1.Player.One ?
+        let jumpers = this.player == game_model_1.Player.One ?
             this.getJumpersWhite() :
             this.getJumpersBlack();
         if (jumpers) {
@@ -433,9 +445,10 @@ class Bitboard {
 }
 exports.Bitboard = Bitboard;
 
-},{"./assert":2,"./mcts":9}],4:[function(require,module,exports){
+},{"./assert":2,"./game-model":10}],4:[function(require,module,exports){
 "use strict";
 const checkers_bitboard_1 = require('./checkers-bitboard');
+const game_model_1 = require('./game-model');
 const ROW_LENGTH = 8;
 const COLUMN_LENGTH = 8;
 const BoardSquareArray = (function () {
@@ -555,11 +568,11 @@ class CheckersBoardController {
             let fillColor;
             let strokeColor;
             switch (bitboard.getPlayerAtSquare(i)) {
-                case checkers_bitboard_1.Player.One:
+                case game_model_1.Player.One:
                     fillColor = 'white';
                     strokeColor = 'black';
                     break;
-                case checkers_bitboard_1.Player.Two:
+                case game_model_1.Player.Two:
                     fillColor = 'black';
                     strokeColor = 'white';
                     break;
@@ -605,7 +618,7 @@ exports.CheckersBoard = {
     controller: CheckersBoardController
 };
 
-},{"./checkers-bitboard":3}],5:[function(require,module,exports){
+},{"./checkers-bitboard":3,"./game-model":10}],5:[function(require,module,exports){
 "use strict";
 const checkers_service_1 = require('./checkers-service');
 class GameMenuController {
@@ -667,7 +680,7 @@ exports.CheckersGameMenu = {
 
 },{"./checkers-service":8}],6:[function(require,module,exports){
 "use strict";
-const checkers_service_1 = require('./checkers-service');
+const game_model_1 = require('./game-model');
 class GameStatsController {
     constructor(checkers, $interval) {
         this.checkers = checkers;
@@ -679,9 +692,9 @@ class GameStatsController {
     }
     getCurrentPlayer() {
         switch (this.checkers.getCurrentPlayer()) {
-            case checkers_service_1.Player.One:
+            case game_model_1.Player.One:
                 return 'White';
-            case checkers_service_1.Player.Two:
+            case game_model_1.Player.Two:
                 return 'Black';
             default:
                 throw new Error('Unexpected player');
@@ -725,7 +738,7 @@ exports.CheckersGameStats = {
     controller: GameStatsController
 };
 
-},{"./checkers-service":8}],7:[function(require,module,exports){
+},{"./game-model":10}],7:[function(require,module,exports){
 "use strict";
 const checkers_service_1 = require('./checkers-service');
 const checkers_board_1 = require('./checkers-board');
@@ -739,19 +752,18 @@ exports.CheckersModule.filter('timeFilter', checkers_game_stats_1.TimeFormatFilt
 },{"./checkers-board":4,"./checkers-game-stats":6,"./checkers-service":8}],8:[function(require,module,exports){
 "use strict";
 const checkers_bitboard_1 = require('./checkers-bitboard');
-const mcts_1 = require('./mcts');
-var checkers_bitboard_2 = require('./checkers-bitboard');
-exports.Player = checkers_bitboard_2.Player;
+const uct_1 = require('./uct');
+const game_model_1 = require('./game-model');
 class Checkers {
     constructor($timeout) {
         this.$timeout = $timeout;
         this.boards = [];
         this.boards.push(new checkers_bitboard_1.Bitboard());
         this.startTime = (new Date()).getTime();
-        this.computeOptions = new mcts_1.ComputeOptions(10000, 5000);
+        this.uctSearch = new uct_1.UctSearch(1000);
     }
     getComputerPlayer() {
-        return checkers_bitboard_1.Player.Two;
+        return game_model_1.Player.Two;
     }
     getCurrentPlayer() {
         return this.getCurrentBoard().player;
@@ -777,7 +789,7 @@ class Checkers {
         }
     }
     doComputerPlayerMove() {
-        let move = mcts_1.computeMove(this.getCurrentBoard(), this.computeOptions);
+        let move = this.uctSearch.search(this.getCurrentBoard());
         if (move) {
             this.tryMove(move.source, move.destination);
         }
@@ -791,9 +803,109 @@ class CheckersProvider {
 }
 exports.CheckersProvider = CheckersProvider;
 
-},{"./checkers-bitboard":3,"./mcts":9}],9:[function(require,module,exports){
+},{"./checkers-bitboard":3,"./game-model":10,"./uct":12}],9:[function(require,module,exports){
 "use strict";
-const asserts = require('./assert');
+const Asserts = require('./assert');
+class HashMap {
+    constructor() {
+        this.map = new Map();
+    }
+    set(key, value) {
+        Asserts.assert(!!key);
+        this.map.set(key.getHashCode(), value);
+    }
+    get(key) {
+        Asserts.assert(!!key);
+        return this.map.get(key.getHashCode());
+    }
+    has(key) {
+        Asserts.assert(!!key);
+        return this.map.has(key.getHashCode());
+    }
+}
+exports.HashMap = HashMap;
+class Arrays {
+    static max(arr, compare) {
+        let len = arr.length;
+        let max;
+        while (len--) {
+            if (max == undefined) {
+                max = arr[len];
+            }
+            else if (compare(arr[len], max)) {
+                max = arr[len];
+            }
+        }
+        return max;
+    }
+}
+exports.Arrays = Arrays;
+class ListNode {
+    constructor(data, next) {
+        this.data = data;
+        this.next = next;
+    }
+}
+class List {
+    constructor(iterable) {
+        this.size = 0;
+        if (iterable) {
+            iterable.forEach((t) => this.add(t));
+        }
+    }
+    add(data) {
+        if (!this.start) {
+            this.start = new ListNode(data);
+            this.end = this.start;
+        }
+        else {
+            this.end.next = new ListNode(data);
+            this.end = this.end.next;
+        }
+        this.size++;
+    }
+    delete(data) {
+        let current = this.start;
+        let previous = this.start;
+        while (current) {
+            if (data === current.data) {
+                this.size--;
+                if (current === this.start) {
+                    this.start = current.next;
+                    return;
+                }
+                if (current === this.end) {
+                    this.end = previous;
+                }
+                previous.next = current.next;
+                return;
+            }
+            previous = current;
+            current = current.next;
+        }
+    }
+    item(index) {
+        let current = this.start;
+        while (current) {
+            if (index === 0) {
+                return current.data;
+            }
+            current = current.next;
+            index--;
+        }
+    }
+    forEach(f) {
+        let current = this.start;
+        while (current) {
+            f(current.data);
+            current = current.next;
+        }
+    }
+}
+exports.List = List;
+
+},{"./assert":2}],10:[function(require,module,exports){
+"use strict";
 (function (Player) {
     Player[Player["None"] = 0] = "None";
     Player[Player["One"] = 1] = "One";
@@ -806,6 +918,11 @@ var Player = exports.Player;
     Result[Result["Draw"] = 2] = "Draw";
 })(exports.Result || (exports.Result = {}));
 var Result = exports.Result;
+
+},{}],11:[function(require,module,exports){
+"use strict";
+const asserts = require('./assert');
+const game_model_1 = require('./game-model');
 class ComputeOptions {
     constructor(maxIterations = 10000, maxTime = -1, verbose = false) {
         this.maxIterations = maxIterations;
@@ -856,10 +973,10 @@ class Node {
     }
     update(result) {
         switch (result) {
-            case Result.Draw:
+            case game_model_1.Result.Draw:
                 this.wins += 0.5;
                 break;
-            case Result.Win:
+            case game_model_1.Result.Win:
                 this.wins++;
             default:
                 break;
@@ -926,7 +1043,109 @@ function computeMove(rootState, options) {
 }
 exports.computeMove = computeMove;
 
-},{"./assert":2}]},{},[1,2,3,4,5,6,7,8,9])
+},{"./assert":2,"./game-model":10}],12:[function(require,module,exports){
+"use strict";
+const asserts = require('./assert');
+const game_model_1 = require('./game-model');
+const collections_1 = require('./collections');
+const C = 1.44;
+function getRandomNumber(upperBounds) {
+    return Math.floor(Math.random() * upperBounds);
+}
+class Node {
+    constructor(parent, state, move) {
+        this.parent = parent;
+        this.state = state;
+        this.move = move;
+        this.children = [];
+        this.wins = 0;
+        this.visits = 0;
+        this.validMoves = new collections_1.List(state.getMoves());
+        this.isTerminal = this.validMoves.size == 0;
+    }
+    get isfullyExpanded() {
+        return this.validMoves.size == 0;
+    }
+    getUntriedMove() {
+        let index = getRandomNumber(this.validMoves.size);
+        let move = this.validMoves.item(index);
+        this.validMoves.delete(move);
+        return move;
+    }
+    addChild(child) {
+        this.children.push(child);
+    }
+}
+class UctSearch {
+    constructor(maxIterations = 1000) {
+        this.maxIterations = maxIterations;
+    }
+    search(rootState) {
+        let root = new Node(null, rootState);
+        for (let i = 0; i < this.maxIterations; i++) {
+            let current = this.treePolicy(root, rootState);
+            let reward = this.defaultPolicy(current.state);
+            this.backup(current, reward);
+        }
+        return this.bestChild(root, 0).move;
+    }
+    treePolicy(node, state) {
+        while (!node.isTerminal) {
+            if (!node.isfullyExpanded) {
+                return this.expand(node);
+            }
+            else {
+                return this.bestChild(node, C);
+            }
+        }
+    }
+    expand(node) {
+        let a = node.getUntriedMove();
+        let newState = node.state.doMove(a);
+        let newNode = new Node(node, newState, a);
+        node.addChild(newNode);
+        return newNode;
+    }
+    defaultPolicy(state) {
+        let moves = state.getMoves();
+        while (moves.length > 0) {
+            let index = getRandomNumber(moves.length);
+            let move = moves[index];
+            state = state.doMove(move);
+            moves = state.getMoves();
+        }
+        asserts.assert(!state.hasMoves());
+        return (node, player) => {
+            let result = state.getResult(player);
+            switch (result) {
+                case game_model_1.Result.Draw:
+                    return 0.5;
+                case game_model_1.Result.Win:
+                    return 1;
+                default:
+                    return 0;
+            }
+        };
+    }
+    backup(node, reward) {
+        while (node) {
+            let player = node.state.getOpponent(node.state.getPlayerToMove());
+            node.visits++;
+            node.wins += reward(node, player);
+            node = node.parent;
+        }
+    }
+    bestChild(node, c) {
+        let values = node.children.map(child => ({
+            child: child,
+            confidence: (child.wins / child.visits) + (c * Math.sqrt((2 * Math.log(node.visits) / child.visits)))
+        }));
+        return collections_1.Arrays.max(values, (a, b) => a.confidence > b.confidence).child;
+    }
+}
+exports.UctSearch = UctSearch;
+
+},{"./assert":2,"./collections":9,"./game-model":10}]},{},[1,2,3,4,5,6,7,8,9,10,11,12])
 
 
 //# sourceMappingURL=bundle.js.map

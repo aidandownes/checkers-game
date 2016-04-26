@@ -1,8 +1,6 @@
 /// <reference path="../typings/browser.d.ts" />
-import {GameState, Move, Result, Player} from './mcts';
+import {Player, Move, GameState, Result} from './game-model';
 import * as Asserts from './assert';
-
-export {Player} from './mcts';
 
 const S = (function (): number[] {
     let squares: number[] = []
@@ -99,6 +97,17 @@ export class Bitboard implements GameState {
 
     getPlayerToMove(): Player {
         return this.player;
+    }
+    
+    getOpponent(player:Player): Player {
+        switch (player) {
+            case Player.One:
+               return Player.Two;
+            case Player.Two:
+                return Player.One;
+            default:
+                return Player.None;
+        }
     }
 
     getPlayerAtSquare(square: number): Player {

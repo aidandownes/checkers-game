@@ -1,17 +1,6 @@
 "use strict";
 const asserts = require('./assert');
-(function (Player) {
-    Player[Player["None"] = 0] = "None";
-    Player[Player["One"] = 1] = "One";
-    Player[Player["Two"] = 2] = "Two";
-})(exports.Player || (exports.Player = {}));
-var Player = exports.Player;
-(function (Result) {
-    Result[Result["Win"] = 0] = "Win";
-    Result[Result["Lose"] = 1] = "Lose";
-    Result[Result["Draw"] = 2] = "Draw";
-})(exports.Result || (exports.Result = {}));
-var Result = exports.Result;
+const game_model_1 = require('./game-model');
 class ComputeOptions {
     constructor(maxIterations = 10000, maxTime = -1, verbose = false) {
         this.maxIterations = maxIterations;
@@ -62,10 +51,10 @@ class Node {
     }
     update(result) {
         switch (result) {
-            case Result.Draw:
+            case game_model_1.Result.Draw:
                 this.wins += 0.5;
                 break;
-            case Result.Win:
+            case game_model_1.Result.Win:
                 this.wins++;
             default:
                 break;

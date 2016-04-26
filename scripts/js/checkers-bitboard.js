@@ -1,8 +1,6 @@
 "use strict";
-const mcts_1 = require('./mcts');
+const game_model_1 = require('./game-model');
 const Asserts = require('./assert');
-var mcts_2 = require('./mcts');
-exports.Player = mcts_2.Player;
 const S = (function () {
     let squares = [];
     for (let i = 0; i < 32; i++) {
@@ -16,18 +14,18 @@ const MASK_R3 = S[28] | S[29] | S[30] | S[20] | S[21] | S[22] | S[12] | S[13] | 
 const MASK_R5 = S[25] | S[26] | S[27] | S[17] | S[18] | S[19] | S[9] | S[10] | S[11];
 exports.SQUARE_COUNT = 32;
 class Bitboard {
-    constructor(whitePieces = 0xFFF00000, blackPieces = 0x00000FFF, kings = 0, player = mcts_1.Player.One) {
+    constructor(whitePieces = 0xFFF00000, blackPieces = 0x00000FFF, kings = 0, player = game_model_1.Player.One) {
         this.whitePieces = whitePieces;
         this.blackPieces = blackPieces;
         this.kings = kings;
         this.player = player;
-        if (this.player == mcts_1.Player.One) {
+        if (this.player == game_model_1.Player.One) {
             let canPlay = this.getJumpersWhite() || this.getHoppersWhite();
-            this.winner = canPlay ? mcts_1.Player.None : mcts_1.Player.Two;
+            this.winner = canPlay ? game_model_1.Player.None : game_model_1.Player.Two;
         }
         else {
             let canPlay = this.getJumpersBlack() || this.getHoppersBlack();
-            this.winner = canPlay ? mcts_1.Player.None : mcts_1.Player.One;
+            this.winner = canPlay ? game_model_1.Player.None : game_model_1.Player.One;
         }
         Asserts.assert((blackPieces & whitePieces) == 0);
     }
@@ -66,22 +64,32 @@ class Bitboard {
         return this.moves;
     }
     getResult(player) {
-        Asserts.assert(this.winner == mcts_1.Player.One || this.winner == mcts_1.Player.Two);
-        return this.winner == player ? mcts_1.Result.Win : mcts_1.Result.Lose;
+        Asserts.assert(this.winner == game_model_1.Player.One || this.winner == game_model_1.Player.Two);
+        return this.winner == player ? game_model_1.Result.Win : game_model_1.Result.Lose;
     }
     getPlayerToMove() {
         return this.player;
     }
+    getOpponent(player) {
+        switch (player) {
+            case game_model_1.Player.One:
+                return game_model_1.Player.Two;
+            case game_model_1.Player.Two:
+                return game_model_1.Player.One;
+            default:
+                return game_model_1.Player.None;
+        }
+    }
     getPlayerAtSquare(square) {
         const mask = S[square];
         if (this.whitePieces & mask) {
-            return mcts_1.Player.One;
+            return game_model_1.Player.One;
         }
         else if (this.blackPieces & mask) {
-            return mcts_1.Player.Two;
+            return game_model_1.Player.Two;
         }
         else {
-            return mcts_1.Player.None;
+            return game_model_1.Player.None;
         }
     }
     getHopMoves(source) {
@@ -90,13 +98,13 @@ class Bitboard {
         const notOccupied = ~(this.whitePieces | this.blackPieces);
         const isKing = mask & this.kings;
         const player = this.player;
-        let hops = 0;
-        if (isKing || (player == mcts_1.Player.One)) {
+        var hops = 0;
+        if (isKing || (player == game_model_1.Player.One)) {
             hops |= (mask >>> 4) & notOccupied;
             hops |= ((mask & MASK_R3) >>> 3) & notOccupied;
             hops |= ((mask & MASK_R5) >>> 5) & notOccupied;
         }
-        if (isKing || (player == mcts_1.Player.Two)) {
+        if (isKing || (player == game_model_1.Player.Two)) {
             hops |= (mask << 4) & notOccupied;
             hops |= ((mask & MASK_L3) << 3) & notOccupied;
             hops |= ((mask & MASK_L5) << 5) & notOccupied;
@@ -108,35 +116,39 @@ class Bitboard {
         }
         return moves;
     }
+    rightJump(opponentPieces, notOccupied, mask) {
+        var jumps = 0;
+        let temp = (mask >>> 4) & opponentPieces;
+        jumps |= (((temp & MASK_R3) >>> 3) | ((temp & MASK_R5) >>> 5)) & notOccupied;
+        temp = (((mask & MASK_R3) >>> 3) | ((mask & MASK_R5) >>> 5)) & opponentPieces;
+        jumps |= (temp >>> 4) & notOccupied;
+        return jumps;
+    }
+    leftJump(opponentPieces, notOccupied, mask) {
+        var jumps = 0;
+        let temp = (mask << 4) & opponentPieces;
+        jumps |= (((temp & MASK_L3) << 3) | ((temp & MASK_L5) << 5)) & notOccupied;
+        temp = (((mask & MASK_L3) << 3) | ((mask & MASK_L5) << 5)) & opponentPieces;
+        jumps |= (temp << 4) & notOccupied;
+        return jumps;
+    }
     getJumpMoves(source) {
         let moves = [];
         const mask = S[source];
         const notOccupied = ~(this.whitePieces | this.blackPieces);
         const isKing = mask & this.kings;
         const player = this.player;
-        let jumps = 0;
-        let rightJump = (opponentPieces) => {
-            let temp = (mask >>> 4) & opponentPieces;
-            jumps |= (((temp & MASK_R3) >>> 3) | ((temp & MASK_R5) >>> 5)) & notOccupied;
-            temp = (((mask & MASK_R3) >>> 3) | ((mask & MASK_R5) >>> 5)) & opponentPieces;
-            jumps |= (temp >>> 4) & notOccupied;
-        };
-        let leftJump = (opponentPieces) => {
-            let temp = (mask << 4) & opponentPieces;
-            jumps |= (((temp & MASK_L3) << 3) | ((temp & MASK_L5) << 5)) & notOccupied;
-            temp = (((mask & MASK_L3) << 3) | ((mask & MASK_L5) << 5)) & opponentPieces;
-            jumps |= (temp << 4) & notOccupied;
-        };
-        if (player == mcts_1.Player.One) {
-            rightJump(this.blackPieces);
+        var jumps = 0;
+        if (player == game_model_1.Player.One) {
+            jumps |= this.rightJump(this.blackPieces, notOccupied, mask);
             if (isKing) {
-                leftJump(this.blackPieces);
+                jumps |= this.leftJump(this.blackPieces, notOccupied, mask);
             }
         }
-        else if (player == mcts_1.Player.Two) {
-            leftJump(this.whitePieces);
+        else if (player == game_model_1.Player.Two) {
+            jumps |= this.leftJump(this.whitePieces, notOccupied, mask);
             if (isKing) {
-                rightJump(this.whitePieces);
+                jumps |= this.rightJump(this.whitePieces, notOccupied, mask);
             }
         }
         for (let destination = 0; destination < 32; destination++) {
@@ -147,12 +159,12 @@ class Bitboard {
         return moves;
     }
     getHoppersWhite() {
-        if (this.player != mcts_1.Player.One) {
+        if (this.player != game_model_1.Player.One) {
             return 0;
         }
         const notOccupied = ~(this.whitePieces | this.blackPieces);
         const kingPieces = this.whitePieces & this.kings;
-        let movers = (notOccupied << 4) & this.whitePieces;
+        var movers = (notOccupied << 4) & this.whitePieces;
         movers |= ((notOccupied & MASK_L3) << 3) & this.whitePieces;
         movers |= ((notOccupied & MASK_L5) << 5) & this.whitePieces;
         if (kingPieces) {
@@ -163,12 +175,12 @@ class Bitboard {
         return movers;
     }
     getHoppersBlack() {
-        if (this.player != mcts_1.Player.Two) {
+        if (this.player != game_model_1.Player.Two) {
             return 0;
         }
         const notOccupied = ~(this.whitePieces | this.blackPieces);
         const kingPieces = this.blackPieces & this.kings;
-        let movers = (notOccupied >>> 4) & this.blackPieces;
+        var movers = (notOccupied >>> 4) & this.blackPieces;
         movers |= ((notOccupied & MASK_R3) >>> 3) & this.blackPieces;
         movers |= ((notOccupied & MASK_R5) >>> 5) & this.blackPieces;
         if (kingPieces) {
@@ -184,7 +196,7 @@ class Bitboard {
         kings = kings || this.kings;
         const notOccupied = ~(whitePieces | blackPieces);
         const kingPieces = whitePieces & kings;
-        let movers = 0;
+        var movers = 0;
         let temp = (notOccupied << 4) & blackPieces;
         movers |= (((temp & MASK_L3) << 3) | ((temp & MASK_L5) << 5)) & whitePieces;
         temp = (((notOccupied & MASK_L3) << 3) | ((notOccupied & MASK_L5) << 5)) & blackPieces;
@@ -203,7 +215,7 @@ class Bitboard {
         kings = kings || this.kings;
         const notOccupied = ~(whitePieces | blackPieces);
         const kingPieces = blackPieces & kings;
-        let movers = 0;
+        var movers = 0;
         let temp = (notOccupied >>> 4) & whitePieces;
         movers |= (((temp & MASK_R3) >>> 3) | ((temp & MASK_R5) >>> 5)) & blackPieces;
         temp = (((notOccupied & MASK_R3) >>> 3) | ((notOccupied & MASK_R5) >>> 5)) & whitePieces;
@@ -220,8 +232,8 @@ class Bitboard {
         let sourceMask = S[source];
         let destinationMask = S[destination];
         let isKing = sourceMask & this.kings;
-        if (this.player == mcts_1.Player.One) {
-            let canMove = (destinationMask << 4) & sourceMask;
+        if (this.player == game_model_1.Player.One) {
+            var canMove = (destinationMask << 4) & sourceMask;
             canMove |= ((destinationMask & MASK_L3) << 3) & sourceMask;
             canMove |= ((destinationMask & MASK_L5) << 5) & sourceMask;
             if (isKing) {
@@ -233,15 +245,15 @@ class Bitboard {
                 let whitePieces = (this.whitePieces | destinationMask) ^ sourceMask;
                 let blackPieces = this.blackPieces;
                 let kings = isKing ? (this.kings | destinationMask) ^ sourceMask : this.kings | (destinationMask & 0xF);
-                let player = mcts_1.Player.Two;
+                let player = game_model_1.Player.Two;
                 return {
                     success: true,
                     board: new Bitboard(whitePieces, blackPieces, kings, player)
                 };
             }
         }
-        else if (this.player = mcts_1.Player.Two) {
-            let canMove = (destinationMask >>> 4) & sourceMask;
+        else if (this.player = game_model_1.Player.Two) {
+            var canMove = (destinationMask >>> 4) & sourceMask;
             canMove |= ((destinationMask & MASK_R3) >>> 3) & sourceMask;
             canMove |= ((destinationMask & MASK_R5) >>> 5) & sourceMask;
             if (isKing) {
@@ -253,7 +265,7 @@ class Bitboard {
                 let whitePieces = this.whitePieces;
                 let blackPieces = (this.blackPieces | destinationMask) ^ sourceMask;
                 let kings = this.kings | (destinationMask & 0xF0000000);
-                let player = mcts_1.Player.One;
+                let player = game_model_1.Player.One;
                 return {
                     success: true,
                     board: new Bitboard(whitePieces, blackPieces, kings, player)
@@ -266,7 +278,7 @@ class Bitboard {
         let sourceMask = S[source];
         let destinationMask = S[destination];
         let isKing = sourceMask & this.kings;
-        if (this.player == mcts_1.Player.One) {
+        if (this.player == game_model_1.Player.One) {
             let canJump;
             let temp = (destinationMask << 4) & this.blackPieces;
             canJump = (((temp & MASK_L3) << 3) | ((temp & MASK_L5) << 5)) & sourceMask;
@@ -288,14 +300,14 @@ class Bitboard {
                 let kings = this.kings | (destinationMask & 0xF);
                 let canJumpAgain = (kings == this.kings) &&
                     (this.getJumpersWhite(whitePieces, blackPieces, kings) & destinationMask);
-                let player = canJumpAgain ? mcts_1.Player.One : mcts_1.Player.Two;
+                let player = canJumpAgain ? game_model_1.Player.One : game_model_1.Player.Two;
                 return {
                     success: true,
                     board: new Bitboard(whitePieces, blackPieces, kings, player)
                 };
             }
         }
-        else if (this.player == mcts_1.Player.Two) {
+        else if (this.player == game_model_1.Player.Two) {
             let canJump;
             let temp = (destinationMask >>> 4) & this.whitePieces;
             canJump = (((temp & MASK_R3) >>> 3) | ((temp & MASK_R5) >>> 5)) & sourceMask;
@@ -317,7 +329,7 @@ class Bitboard {
                 let kings = this.kings | (destinationMask & 0xF0000000);
                 let canJumpAgain = (kings == this.kings) &&
                     (this.getJumpersBlack(whitePieces, blackPieces, kings) & destinationMask);
-                let player = canJumpAgain ? mcts_1.Player.Two : mcts_1.Player.One;
+                let player = canJumpAgain ? game_model_1.Player.Two : game_model_1.Player.One;
                 return {
                     success: true,
                     board: new Bitboard(whitePieces, blackPieces, kings, player)
@@ -331,7 +343,7 @@ class Bitboard {
         const sourceMask = S[move.source];
         const destinationMask = S[move.destination];
         const isKing = sourceMask & this.kings;
-        if (this.winner != mcts_1.Player.None) {
+        if (this.winner != game_model_1.Player.None) {
             failureResult.message = 'Game is over';
             return failureResult;
         }
@@ -339,11 +351,11 @@ class Bitboard {
             failureResult.message = 'Wrong player move';
             return failureResult;
         }
-        if (this.getPlayerAtSquare(move.destination) != mcts_1.Player.None) {
+        if (this.getPlayerAtSquare(move.destination) != game_model_1.Player.None) {
             failureResult.message = 'Destination is not empty';
             return failureResult;
         }
-        let jumpers = this.player == mcts_1.Player.One ?
+        let jumpers = this.player == game_model_1.Player.One ?
             this.getJumpersWhite() :
             this.getJumpersBlack();
         if (jumpers) {

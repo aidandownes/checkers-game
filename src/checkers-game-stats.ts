@@ -1,4 +1,5 @@
-import {Checkers, Player} from './checkers-service';
+import {Checkers} from './checkers-service';
+import {Player} from './game-model';
 
 class GameStatsController {
     playTime: number;
