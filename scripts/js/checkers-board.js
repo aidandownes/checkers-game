@@ -47,20 +47,29 @@ class CheckersBoardController {
         let canvasElement = $element[0].querySelector('canvas');
         this.canvas = angular.element(canvasElement);
         this.ctx = canvasElement.getContext('2d');
-        this.canvas.on("mousedown", this.handleMouseDown.bind(this));
-        $scope.$watch(() => this.checkers.getCurrentBoard(), () => this.render());
-    }
-    $onInit() {
+        this.width = this.$element.width();
+        this.height = this.$element.height();
         this.squareSize = this.width / ROW_LENGTH;
+        this.canvas.on('mousedown', this.handleMouseDown.bind(this));
+        $scope.$watch(() => this.$element.width(), this.resize.bind(this));
+        $scope.$watch(() => this.checkers.getCurrentBoard(), () => this.render());
     }
     $postLink() {
         this.render();
     }
     render() {
         this.$timeout(() => {
+            this.canvas[0].width = this.width;
+            this.canvas[0].height = this.width;
             this.drawBoard();
             this.drawPieces(this.checkers.getCurrentBoard());
         });
+    }
+    resize() {
+        this.width = this.$element.width();
+        this.height = this.$element.height();
+        this.squareSize = this.width / ROW_LENGTH;
+        this.render();
     }
     handleMouseDown(ev) {
         let p = this.getMousePoint(ev);
@@ -163,12 +172,9 @@ class CheckersBoardController {
     }
 }
 exports.CheckersBoard = {
-    template: `<canvas width="{{$ctrl.width}}" height="{{$ctrl.height}}">
+    template: `<canvas>
         <span id="no_html5">Your Browser Does Not Support HTML5's Canvas Feature.</span>
     </canvas>`,
-    bindings: {
-        width: '<',
-        height: '<'
-    },
+    bindings: {},
     controller: CheckersBoardController
 };

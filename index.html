@@ -19,34 +19,36 @@
                 <span flex></span>
             </div>
         </md-toolbar>
-        <md-content layout="row" layout-xs="column" flex>
-            <div layout="column">
-                <md-card id="checkers-board-card" md-theme="card-default">
-                    <md-card-title>
-                        <md-card-title-text>
-                            <span class="md-headline">Player 1 vs Player 2</span>
-                        </md-card-title-text>
-                    </md-card-title>
-                    <md-card-content>
-                        <checkers-board width="480" height="480"></checkers-board>
-                    </md-card-content>
-                    <md-card-actions layout="row" layout-align="end center">
-                        <md-button>Undo</md-button>
-                        <md-button>Resign</md-button>
-                    </md-card-actions>
-                </md-card>
-            </div>
-            <div layout="column">
-                <md-card md-theme="card-blue-dark">
-                    <md-card-title>
-                        <md-card-title-text>
-                            <span class="md-headline">Game stats</span>
-                        </md-card-title-text>
-                    </md-card-title>
-                    <md-card-content>
-                        <checkers-game-stats></checkers-game-stats>
-                    </md-card-content>
-                </md-card>
+        <md-content>
+            <div layout="row" layout-xs="column">
+                <div layout="column">
+                    <md-card id="checkers-board-card" md-theme="card-default">
+                        <md-card-title>
+                            <md-card-title-text>
+                                <span class="md-headline">Player 1 vs Player 2</span>
+                            </md-card-title-text>
+                        </md-card-title>
+                        <md-card-content layout="column" layout-align="space-between">
+                            <checkers-board></checkers-board>
+                            <md-card-actions layout="row" layout-align="end center">
+                                <md-button>Undo</md-button>
+                                <md-button>Resign</md-button>
+                            </md-card-actions>
+                        </md-card-content>
+                    </md-card>
+                </div>
+                <div layout="column">
+                    <md-card md-theme="card-blue-dark">
+                        <md-card-title>
+                            <md-card-title-text>
+                                <span class="md-headline">Game stats</span>
+                            </md-card-title-text>
+                        </md-card-title>
+                        <md-card-content>
+                            <checkers-game-stats></checkers-game-stats>
+                        </md-card-content>
+                    </md-card>
+                </div>
             </div>
         </md-content>
     </div>

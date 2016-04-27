@@ -16,6 +16,11 @@ md-card#checkers-board-card {
     min-height: $board-size;
 }
 
+checkers-board {
+    max-width: 448px;
+    max-height: 448px;
+}
+
 
 span {
     &.cb-key-name {

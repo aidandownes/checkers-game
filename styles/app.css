@@ -5,6 +5,10 @@ md-card#checkers-board-card {
   min-width: 480px;
   min-height: 480px; }
 
+checkers-board {
+  max-width: 448px;
+  max-height: 448px; }
+
 span.cb-key-name {
   padding-right: 32px; }
 
