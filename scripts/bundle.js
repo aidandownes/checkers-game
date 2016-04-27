@@ -14,10 +14,18 @@ function configureThemes($mdThemingProvider) {
     $mdThemingProvider.theme('card-blue-dark')
         .backgroundPalette('blue')
         .dark();
+    $mdThemingProvider.theme('card-red')
+        .backgroundPalette('red')
+        .dark();
 }
 exports.AppModule.config(configureThemes);
+class AppController {
+    constructor(checkers) {
+        this.checkers = checkers;
+    }
+}
 
-},{"./checkers-module":7}],2:[function(require,module,exports){
+},{"./checkers-module":8}],2:[function(require,module,exports){
 "use strict";
 function assert(condition, message) {
     if (!condition) {
@@ -461,7 +469,7 @@ class Bitboard {
 }
 exports.Bitboard = Bitboard;
 
-},{"./assert":2,"./game-model":10}],4:[function(require,module,exports){
+},{"./assert":2,"./game-model":11}],4:[function(require,module,exports){
 "use strict";
 const checkers_bitboard_1 = require('./checkers-bitboard');
 const game_model_1 = require('./game-model');
@@ -643,7 +651,7 @@ exports.CheckersBoard = {
     controller: CheckersBoardController
 };
 
-},{"./checkers-bitboard":3,"./game-model":10}],5:[function(require,module,exports){
+},{"./checkers-bitboard":3,"./game-model":11}],5:[function(require,module,exports){
 "use strict";
 const checkers_service_1 = require('./checkers-service');
 class GameMenuController {
@@ -703,7 +711,7 @@ exports.CheckersGameMenu = {
     controller: GameMenuController
 };
 
-},{"./checkers-service":8}],6:[function(require,module,exports){
+},{"./checkers-service":9}],6:[function(require,module,exports){
 "use strict";
 const game_model_1 = require('./game-model');
 class GameStatsController {
@@ -763,29 +771,65 @@ exports.CheckersGameStats = {
     controller: GameStatsController
 };
 
-},{"./game-model":10}],7:[function(require,module,exports){
+},{"./game-model":11}],7:[function(require,module,exports){
+"use strict";
+class MctsStatsController {
+    constructor(checkers, $scope) {
+        this.checkers = checkers;
+        this.$scope = $scope;
+        $scope.$watch(() => checkers.getSearchResult(), (searchResult) => {
+            this.searchResult = searchResult;
+        });
+    }
+    getWinPercentage() {
+        return this.searchResult ?
+            (1 - this.searchResult.winProbabilty) * 100 :
+            50;
+    }
+    getTime() {
+        return this.searchResult ?
+            this.searchResult.time : 0;
+    }
+    getIterations() {
+        return this.searchResult ?
+            this.searchResult.iterations : 0;
+    }
+}
+exports.CheckersMctsStats = {
+    templateUrl: './templates/mcts-stats.ng',
+    controller: MctsStatsController
+};
+
+},{}],8:[function(require,module,exports){
 "use strict";
 const checkers_service_1 = require('./checkers-service');
 const checkers_board_1 = require('./checkers-board');
 const checkers_game_stats_1 = require('./checkers-game-stats');
+const checkers_mcts_stats_1 = require('./checkers-mcts-stats');
 exports.CheckersModule = angular.module('Checkers', []);
 exports.CheckersModule.provider('checkers', checkers_service_1.CheckersProvider);
 exports.CheckersModule.component('checkersBoard', checkers_board_1.CheckersBoard);
 exports.CheckersModule.component('checkersGameStats', checkers_game_stats_1.CheckersGameStats);
+exports.CheckersModule.component('checkersMctsStats', checkers_mcts_stats_1.CheckersMctsStats);
 exports.CheckersModule.filter('timeFilter', checkers_game_stats_1.TimeFormatFilter);
 
-},{"./checkers-board":4,"./checkers-game-stats":6,"./checkers-service":8}],8:[function(require,module,exports){
+},{"./checkers-board":4,"./checkers-game-stats":6,"./checkers-mcts-stats":7,"./checkers-service":9}],9:[function(require,module,exports){
 "use strict";
 const checkers_bitboard_1 = require('./checkers-bitboard');
 const uct_1 = require('./uct');
 const game_model_1 = require('./game-model');
+const DEFAULT_MAX_TIME_MS = 500;
+const DEFAULT_MAX_ITERATIONS = 10000;
 class Checkers {
     constructor($timeout) {
         this.$timeout = $timeout;
+        this.reset();
+    }
+    reset(maxTime = DEFAULT_MAX_TIME_MS, maxIterations = DEFAULT_MAX_ITERATIONS) {
         this.boards = [];
         this.boards.push(new checkers_bitboard_1.Bitboard());
         this.startTime = (new Date()).getTime();
-        this.uctSearch = new uct_1.UctSearch(1000);
+        this.uctSearch = new uct_1.UctSearch(maxIterations, maxTime);
     }
     getComputerPlayer() {
         return game_model_1.Player.Two;
@@ -798,6 +842,9 @@ class Checkers {
     }
     getStartTime() {
         return this.startTime;
+    }
+    getSearchResult() {
+        return this.searchResult;
     }
     tryMove(source, destination) {
         let currentBoard = this.getCurrentBoard();
@@ -814,8 +861,9 @@ class Checkers {
         }
     }
     doComputerPlayerMove() {
-        let move = this.uctSearch.search(this.getCurrentBoard());
-        if (move) {
+        this.searchResult = this.uctSearch.search(this.getCurrentBoard());
+        if (this.searchResult.move) {
+            let move = this.searchResult.move;
             this.tryMove(move.source, move.destination);
         }
     }
@@ -828,7 +876,7 @@ class CheckersProvider {
 }
 exports.CheckersProvider = CheckersProvider;
 
-},{"./checkers-bitboard":3,"./game-model":10,"./uct":12}],9:[function(require,module,exports){
+},{"./checkers-bitboard":3,"./game-model":11,"./uct":13}],10:[function(require,module,exports){
 "use strict";
 const Asserts = require('./assert');
 class HashMap {
@@ -929,7 +977,7 @@ class List {
 }
 exports.List = List;
 
-},{"./assert":2}],10:[function(require,module,exports){
+},{"./assert":2}],11:[function(require,module,exports){
 "use strict";
 (function (Player) {
     Player[Player["None"] = 0] = "None";
@@ -944,7 +992,7 @@ var Player = exports.Player;
 })(exports.Result || (exports.Result = {}));
 var Result = exports.Result;
 
-},{}],11:[function(require,module,exports){
+},{}],12:[function(require,module,exports){
 "use strict";
 const asserts = require('./assert');
 const game_model_1 = require('./game-model');
@@ -1068,7 +1116,7 @@ function computeMove(rootState, options) {
 }
 exports.computeMove = computeMove;
 
-},{"./assert":2,"./game-model":10}],12:[function(require,module,exports){
+},{"./assert":2,"./game-model":11}],13:[function(require,module,exports){
 "use strict";
 const asserts = require('./assert');
 const game_model_1 = require('./game-model');
@@ -1085,6 +1133,8 @@ class Node {
         this.children = [];
         this.wins = 0;
         this.visits = 0;
+        this.uctScore = 0;
+        this.confidence = 0;
         this.validMoves = new collections_1.List(state.getMoves());
         this.isTerminal = this.validMoves.size == 0;
     }
@@ -1102,21 +1152,29 @@ class Node {
     }
 }
 class UctSearch {
-    constructor(maxIterations = 1000) {
+    constructor(maxIterations = 1000, maxTime = 1000) {
         this.maxIterations = maxIterations;
+        this.maxTime = maxTime;
     }
     search(rootState) {
-        console.time('search');
         let root = new Node(null, rootState);
-        for (let i = 0; i < this.maxIterations; i++) {
+        let startTime = Date.now();
+        let i;
+        for (i = 0; i < this.maxIterations; i++) {
             let current = this.treePolicy(root, rootState);
             let reward = this.defaultPolicy(current.state);
             this.backup(current, reward);
+            if (Date.now() - startTime > this.maxTime) {
+                break;
+            }
         }
         let bestChild = this.bestChild(root, 0);
-        console.timeEnd('search');
-        console.log(`(${bestChild.wins} wins / ${bestChild.visits} visits) = ${bestChild.wins / bestChild.visits}`);
-        return bestChild.move;
+        return {
+            move: bestChild.move,
+            winProbabilty: (bestChild.wins / bestChild.visits),
+            time: Date.now() - startTime,
+            iterations: i
+        };
     }
     treePolicy(node, state) {
         while (!node.isTerminal) {
@@ -1165,16 +1223,16 @@ class UctSearch {
         }
     }
     bestChild(node, c) {
-        let values = node.children.map(child => ({
-            child: child,
-            confidence: (child.wins / child.visits) + (c * Math.sqrt((2 * Math.log(node.visits) / child.visits)))
-        }));
-        return collections_1.Arrays.max(values, (a, b) => a.confidence > b.confidence).child;
+        node.children.forEach(child => {
+            child.confidence = c * Math.sqrt(2 * Math.log(node.visits) / child.visits);
+            child.uctScore = (child.wins / child.visits) + child.confidence;
+        });
+        return collections_1.Arrays.max(node.children, (a, b) => a.uctScore > b.uctScore);
     }
 }
 exports.UctSearch = UctSearch;
 
-},{"./assert":2,"./collections":9,"./game-model":10}]},{},[1,2,3,4,5,6,7,8,9,10,11,12])
+},{"./assert":2,"./collections":10,"./game-model":11}]},{},[1,2,3,4,5,6,7,8,9,10,11,12,13])
 
 
 //# sourceMappingURL=bundle.js.map

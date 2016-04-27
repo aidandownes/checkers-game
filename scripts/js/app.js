@@ -13,5 +13,13 @@ function configureThemes($mdThemingProvider) {
     $mdThemingProvider.theme('card-blue-dark')
         .backgroundPalette('blue')
         .dark();
+    $mdThemingProvider.theme('card-red')
+        .backgroundPalette('red')
+        .dark();
 }
 exports.AppModule.config(configureThemes);
+class AppController {
+    constructor(checkers) {
+        this.checkers = checkers;
+    }
+}

@@ -1,18 +1,29 @@
 /// <reference path="../typings/browser.d.ts" />
 import {Bitboard, CheckersMove} from './checkers-bitboard';
-import {UctSearch} from './uct';
+import {UctSearch, SearchResult} from './uct';
 import {Player} from './game-model';
+
+export {SearchResult} from './uct';
+
+const DEFAULT_MAX_TIME_MS = 500;
+const DEFAULT_MAX_ITERATIONS = 10000;
 
 export class Checkers {
     private boards: Bitboard[];
     private startTime: number;
     private uctSearch: UctSearch;
-
+    private searchResult: SearchResult;
+    
     constructor(private $timeout:ng.ITimeoutService) {
+        this.reset();
+    }
+    
+    reset(maxTime:number = DEFAULT_MAX_TIME_MS, 
+            maxIterations:number = DEFAULT_MAX_ITERATIONS) {
         this.boards = [];
         this.boards.push(new Bitboard());
         this.startTime = (new Date()).getTime();
-        this.uctSearch = new UctSearch(1000);
+        this.uctSearch = new UctSearch(maxIterations, maxTime);
     }
     
     getComputerPlayer() {
@@ -29,6 +40,10 @@ export class Checkers {
 
     getStartTime(): number {
         return this.startTime;
+    }
+    
+    getSearchResult(): SearchResult {
+        return this.searchResult;
     }
 
     tryMove(source: number, destination: number): boolean {
@@ -48,9 +63,10 @@ export class Checkers {
     }
     
     doComputerPlayerMove() {
-        let move = <CheckersMove>this.uctSearch.search(this.getCurrentBoard());
-        if (move) {
-           this.tryMove(move.source, move.destination);
+        this.searchResult = this.uctSearch.search(this.getCurrentBoard());
+        if (this.searchResult.move) {
+            let move = <CheckersMove>this.searchResult.move;
+            this.tryMove(move.source, move.destination);
         }
     }
 }

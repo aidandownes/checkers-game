@@ -38,7 +38,7 @@
                     </md-card>
                 </div>
                 <div layout="column">
-                    <md-card md-theme="card-blue-dark">
+                    <md-card md-theme="card-blue-dark" class="cb-card-stats">
                         <md-card-title>
                             <md-card-title-text>
                                 <span class="md-headline">Game stats</span>
@@ -46,6 +46,17 @@
                         </md-card-title>
                         <md-card-content>
                             <checkers-game-stats></checkers-game-stats>
+                        </md-card-content>
+                    </md-card>
+                    
+                    <md-card md-theme="card-red" class="cb-card-stats">
+                        <md-card-title>
+                            <md-card-title-text>
+                                <span class="md-headline">Winning Probablity</span>
+                            </md-card-title-text>
+                        </md-card-title>
+                        <md-card-content>
+                            <checkers-mcts-stats></checkers-mcts-stats>
                         </md-card-content>
                     </md-card>
                 </div>

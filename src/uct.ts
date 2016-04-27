@@ -13,12 +13,21 @@ interface Reward {
     (node:Node, player:Player): number;
 }
 
+export interface SearchResult {
+    move: Move;
+    winProbabilty: number;
+    time: number;
+    iterations: number;
+}
+
 class Node {
     validMoves: List<Move>;
     isTerminal: boolean;
     children: Node[] = [];
     wins: number = 0;
     visits: number = 0;
+    uctScore: number = 0;
+    confidence: number = 0;
     
     constructor(public parent:Node, public state:GameState, public move?:Move) {
         this.validMoves = new List(state.getMoves());
@@ -44,24 +53,33 @@ class Node {
 
 export class UctSearch {
    
-    constructor(private maxIterations:number = 1000) {
+    constructor(private maxIterations:number = 1000, 
+        private maxTime:number = 1000) {
         
     }
     
-    search(rootState:GameState): Move {
-        console.time('search');
+    search(rootState:GameState): SearchResult {
         let root = new Node(null, rootState);
-       
-        for (let i = 0; i < this.maxIterations; i++) {
+        let startTime =  Date.now();
+        let i:number;
+        
+        for (i = 0; i < this.maxIterations; i++) {
             let current = this.treePolicy(root, rootState);
             let reward = this.defaultPolicy(current.state);
             this.backup(current, reward);
+            
+            if (Date.now() - startTime > this.maxTime) {
+                break;
+            }
         }
         
-        let bestChild = this.bestChild(root, 0);
-        console.timeEnd('search');
-        console.log(`(${bestChild.wins} wins / ${bestChild.visits} visits) = ${bestChild.wins/bestChild.visits}`);
-        return bestChild.move;
+        let bestChild = this.bestChild(root, 0); 
+        return {
+            move: bestChild.move,
+            winProbabilty: (bestChild.wins / bestChild.visits),
+            time: Date.now() - startTime,
+            iterations: i
+        };
     }
     
     private treePolicy(node:Node, state:GameState): Node {
@@ -116,13 +134,10 @@ export class UctSearch {
     }
     
     private bestChild(node:Node, c:number): Node {
-        let values = node.children.map(child => ({
-            child: child,
-            confidence: (child.wins / child.visits) + (c * Math.sqrt((
-                2 * Math.log(node.visits) / child.visits
-            )))
-        }));
-        
-        return Arrays.max(values, (a, b) => a.confidence > b.confidence).child;
+        node.children.forEach(child => {
+            child.confidence = c * Math.sqrt(2 * Math.log(node.visits) / child.visits);
+            child.uctScore = (child.wins / child.visits) + child.confidence;
+        });
+        return Arrays.max(node.children, (a, b) => a.uctScore > b.uctScore);
     }
 }

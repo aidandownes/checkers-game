@@ -1,0 +1,13 @@
+<div layout="row"> 
+    <div layout="column"> 
+        <span class="md-display-3">{{$ctrl.getWinPercentage()| number:0}}%</span>
+    </div>
+    <div> 
+        <dl class="cb-kv-list">
+            <dt>Time </dt> 
+            <dd> {{$ctrl.getTime()}} </dd>
+            <dt>Iterations </dt>
+            <dd> {{$ctrl.getIterations()}} </dd>
+        </dl>
+    <div>
+<div>

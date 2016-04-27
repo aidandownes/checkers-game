@@ -9,6 +9,9 @@ $space-large: 32px;
 
 md-card {
     min-width: 250px;
+    &.cb-card-stats {
+        max-width: 370px;
+    }
 }
 
 md-card#checkers-board-card {
@@ -31,5 +34,22 @@ span {
 md-list {
     &.cb-compact-list {
         padding-top: 0;
+    }
+}
+
+dl {
+    &.cb-kv-list {
+        display: flex;
+        flex-wrap: wrap;
+        justify-content: space-between;
+        margin: $space-small $space-medium; 
+        
+        dt {
+            width: 30%;
+        }
+        
+        dd {
+           width: 40%;
+        }
     }
 }

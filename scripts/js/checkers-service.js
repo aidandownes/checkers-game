@@ -2,13 +2,18 @@
 const checkers_bitboard_1 = require('./checkers-bitboard');
 const uct_1 = require('./uct');
 const game_model_1 = require('./game-model');
+const DEFAULT_MAX_TIME_MS = 500;
+const DEFAULT_MAX_ITERATIONS = 10000;
 class Checkers {
     constructor($timeout) {
         this.$timeout = $timeout;
+        this.reset();
+    }
+    reset(maxTime = DEFAULT_MAX_TIME_MS, maxIterations = DEFAULT_MAX_ITERATIONS) {
         this.boards = [];
         this.boards.push(new checkers_bitboard_1.Bitboard());
         this.startTime = (new Date()).getTime();
-        this.uctSearch = new uct_1.UctSearch(1000);
+        this.uctSearch = new uct_1.UctSearch(maxIterations, maxTime);
     }
     getComputerPlayer() {
         return game_model_1.Player.Two;
@@ -21,6 +26,9 @@ class Checkers {
     }
     getStartTime() {
         return this.startTime;
+    }
+    getSearchResult() {
+        return this.searchResult;
     }
     tryMove(source, destination) {
         let currentBoard = this.getCurrentBoard();
@@ -37,8 +45,9 @@ class Checkers {
         }
     }
     doComputerPlayerMove() {
-        let move = this.uctSearch.search(this.getCurrentBoard());
-        if (move) {
+        this.searchResult = this.uctSearch.search(this.getCurrentBoard());
+        if (this.searchResult.move) {
+            let move = this.searchResult.move;
             this.tryMove(move.source, move.destination);
         }
     }

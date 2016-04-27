@@ -3,10 +3,12 @@
 import {CheckersProvider} from './checkers-service';
 import {CheckersBoard} from './checkers-board';
 import {CheckersGameStats, TimeFormatFilter} from './checkers-game-stats';
+import {CheckersMctsStats} from './checkers-mcts-stats';
 
 export const CheckersModule = angular.module('Checkers', []);
 
 CheckersModule.provider('checkers', CheckersProvider);
 CheckersModule.component('checkersBoard', CheckersBoard);
 CheckersModule.component('checkersGameStats', CheckersGameStats);
+CheckersModule.component('checkersMctsStats', CheckersMctsStats);
 CheckersModule.filter('timeFilter', TimeFormatFilter);

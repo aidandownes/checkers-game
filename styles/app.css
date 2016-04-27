@@ -1,5 +1,7 @@
 md-card {
   min-width: 250px; }
+  md-card.cb-card-stats {
+    max-width: 370px; }
 
 md-card#checkers-board-card {
   min-width: 480px;
@@ -14,3 +16,13 @@ span.cb-key-name {
 
 md-list.cb-compact-list {
   padding-top: 0; }
+
+dl.cb-kv-list {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  margin: 8px 16px; }
+  dl.cb-kv-list dt {
+    width: 30%; }
+  dl.cb-kv-list dd {
+    width: 40%; }
