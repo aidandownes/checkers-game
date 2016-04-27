@@ -69,19 +69,25 @@ export class Bitboard implements GameState {
         if (!this.moves) {
             this.moves = [];
             
+            let jumpers = (this.player == Player.One) ? 
+                this.getJumpersWhite() : 
+                this.getJumpersBlack();
+            
             for (let i = 0; i < SQUARE_COUNT; i++) {
-                if (this.getPlayerAtSquare(i) != this.player) {
-                    continue;
+                if (S[i] & jumpers) {
+                    Array.prototype.push.apply(this.moves, this.getJumpMoves(i));
                 }
-                Array.prototype.push.apply(this.moves, this.getJumpMoves(i));
             }
             
             if (this.moves.length == 0) {
+                let hoppers = (this.player == Player.One) ?
+                    this.getHoppersWhite(): 
+                    this.getHoppersBlack();
+                    
                 for (let i = 0; i < SQUARE_COUNT; i++) {
-                    if (this.getPlayerAtSquare(i) != this.player) {
-                        continue;
+                    if (S[i] & hoppers) {
+                        Array.prototype.push.apply(this.moves, this.getHopMoves(i));
                     }
-                    Array.prototype.push.apply(this.moves, this.getHopMoves(i));
                 }
             }
         }
