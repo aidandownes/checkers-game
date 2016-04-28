@@ -1,6 +1,6 @@
 /// <reference path="../typings/browser.d.ts" />
 import {CheckersModule} from './checkers-module';
-import {Checkers} from './checkers-service';
+import {Checkers, ComputeOptions} from './checkers-service';
 
 export const AppModule = angular.module('app', [CheckersModule.name, 'ngMaterial']);
 
@@ -29,7 +29,34 @@ AppModule.config(configureThemes);
 
 
 class AppController {
-    constructor(private checkers: Checkers) {
+    computeOptions: ComputeOptions;
+    isSidenavOpen: boolean;
+    
+    constructor(private checkers: Checkers, 
+            private $mdSidenav: ng.material.ISidenavService,
+            private $scope: ng.IScope) {
+        this.computeOptions = checkers.getComputeOptions();
         
+        $scope.$watchCollection(() => this.computeOptions, (options) => {
+            checkers.setComputeOptions(options);
+        });
+        
+        $scope.$watch(() => this.isSidenavOpen, (newValue, oldValue) => {
+            if (!newValue && oldValue) {
+                // Side nav was closed. Reset game.
+                this.checkers.reset();
+            }
+        });
+    }
+    
+    toggleMenu(){
+        this.$mdSidenav('left').toggle();
+    }
+    
+    restart() {
+        this.checkers.reset();
     }
 }
+
+
+AppModule.controller('AppController', AppController);

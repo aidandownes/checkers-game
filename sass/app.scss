@@ -7,6 +7,20 @@ $space-small: 8px;
 $space-medium: 16px;
 $space-large: 32px;
 
+$menu-width: $space-large + $space-xs;
+
+.md-button {
+    &.menu {
+    background-color: transparent;
+    border: none;
+    height: 38px;
+    margin: $space-medium;
+    width: $menu-width;
+    min-width: $menu-width;
+    }
+}
+
+
 md-card {
     min-width: 250px;
     &.cb-card-stats {

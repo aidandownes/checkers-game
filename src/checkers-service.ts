@@ -8,26 +8,55 @@ export {SearchResult} from './uct';
 const DEFAULT_MAX_TIME_MS = 500;
 const DEFAULT_MAX_ITERATIONS = 10000;
 
+export interface ComputeOptions {
+    maxTime?: number;
+    maxIterations?: number;
+}
+
 export class Checkers {
     private boards: Bitboard[];
     private startTime: number;
     private uctSearch: UctSearch;
     private searchResult: SearchResult;
+    private computeOptions: ComputeOptions;
     
     constructor(private $timeout:ng.ITimeoutService) {
+        this.setComputeOptions({
+            maxIterations: DEFAULT_MAX_ITERATIONS,
+            maxTime: DEFAULT_MAX_TIME_MS
+        });
+        
         this.reset();
     }
     
-    reset(maxTime:number = DEFAULT_MAX_TIME_MS, 
-            maxIterations:number = DEFAULT_MAX_ITERATIONS) {
+    reset() {
         this.boards = [];
         this.boards.push(new Bitboard());
         this.startTime = (new Date()).getTime();
-        this.uctSearch = new UctSearch(maxIterations, maxTime);
+        this.uctSearch = new UctSearch(this.computeOptions.maxIterations, 
+            this.computeOptions.maxTime);
+        this.searchResult = null;
+    }
+    
+    setComputeOptions(computeOptions: ComputeOptions) {
+        this.computeOptions = computeOptions;
+    }
+    
+    getComputeOptions() : ComputeOptions {
+        return this.computeOptions;
     }
     
     getComputerPlayer() {
         return Player.Two;
+    }
+    
+    getHumanPlayer() {
+        return Player.One;
+    }
+    
+    getOpponent(player: Player): Player {
+        if (player == Player.None) return Player.None;
+        return player == Player.One ? Player.Two : Player.One;
     }
 
     getCurrentPlayer(): Player {

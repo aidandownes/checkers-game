@@ -12,56 +12,86 @@
 </head>
 
 <body ng-app="app">
-    <div layout="column" layout-fill>
+    <div layout="column" layout-fill ng-controller="AppController as appCtrl">
         <md-toolbar>
             <div class="md-toolbar-tools">
+                <md-button ng-click="appCtrl.toggleMenu()" aria-label="Show Settings" class="menu">
+                    <md-icon md-font-icon="material-icons">menu </md-icon>
+                </md-button>
                 <span>Checkers</span>
                 <span flex></span>
             </div>
         </md-toolbar>
-        <md-content>
-            <div layout="row" layout-xs="column">
-                <div layout="column">
-                    <md-card id="checkers-board-card" md-theme="card-default">
-                        <md-card-title>
-                            <md-card-title-text>
-                                <span class="md-headline">Player 1 vs Player 2</span>
-                            </md-card-title-text>
-                        </md-card-title>
-                        <md-card-content layout="column" layout-align="space-between">
-                            <checkers-board></checkers-board>
-                            <md-card-actions layout="row" layout-align="end center">
-                                <md-button>Undo</md-button>
-                                <md-button>Resign</md-button>
-                            </md-card-actions>
-                        </md-card-content>
-                    </md-card>
+        <div layout="row" flex>
+            <md-sidenav class="md-sidenav-left" md-component-id="left" md-whiteframe="4" md-is-open="appCtrl.isSidenavOpen">
+                <md-toolbar>
+                    <h1 class="md-toolbar-tools">Game Settings </h1>
+                </md-toolbar>
+                <md-content layout-padding>
+                    <h3>A.I. Computation</h3>
+                    <md-slider-container>
+                        <md-icon md-font-icon="material-icons">av_timer</md-icon>
+                        <md-slider ng-model="appCtrl.computeOptions.maxTime" 
+                            aria-label="Max Compute Time" flex md-discrete min="100" max="5000"></md-slider>
+                        <md-input-container>
+                            <input flex type="number" ng-model="appCtrl.computeOptions.maxTime" aria-label="Max Compute Time" 
+                                aria-controls="maxTime-slider">
+                        </md-input-container>
+                    </md-slider-container>
+                    <md-slider-container>
+                        <md-icon md-font-icon="material-icons">work</md-icon>
+                        <md-slider ng-model="appCtrl.computeOptions.maxIterations" 
+                            aria-label="Max Iterations" flex md-discrete min="1000" max="20000"></md-slider>
+                        <md-input-container>
+                            <input flex type="number" ng-model="appCtrl.computeOptions.maxIterations" aria-label="Max Iterations" 
+                                aria-controls="maxIterations-slider">
+                        </md-input-container>
+                    </md-slider-container>
+                </md-content>
+            </md-sidenav>
+            <md-content>
+                <div layout="row" layout-xs="column">
+                    <div layout="column">
+                        <md-card id="checkers-board-card" md-theme="card-default">
+                            <md-card-title>
+                                <md-card-title-text>
+                                    <span class="md-headline">Player 1 vs Player 2</span>
+                                </md-card-title-text>
+                            </md-card-title>
+                            <md-card-content layout="column" layout-align="space-between">
+                                <checkers-board></checkers-board>
+                                <md-card-actions layout="row" layout-align="end center">
+                                    <md-button ng-click="appCtrl.restart()">Restart</md-button>
+                                </md-card-actions>
+                            </md-card-content>
+                        </md-card>
+                    </div>
+                    <div layout="column">
+                        <md-card md-theme="card-blue-dark" class="cb-card-stats">
+                            <md-card-title>
+                                <md-card-title-text>
+                                    <span class="md-headline">Game stats</span>
+                                </md-card-title-text>
+                            </md-card-title>
+                            <md-card-content>
+                                <checkers-game-stats></checkers-game-stats>
+                            </md-card-content>
+                        </md-card>
+
+                        <md-card md-theme="card-red" class="cb-card-stats">
+                            <md-card-title>
+                                <md-card-title-text>
+                                    <span class="md-headline">Winning Probablity</span>
+                                </md-card-title-text>
+                            </md-card-title>
+                            <md-card-content>
+                                <checkers-mcts-stats></checkers-mcts-stats>
+                            </md-card-content>
+                        </md-card>
+                    </div>
                 </div>
-                <div layout="column">
-                    <md-card md-theme="card-blue-dark" class="cb-card-stats">
-                        <md-card-title>
-                            <md-card-title-text>
-                                <span class="md-headline">Game stats</span>
-                            </md-card-title-text>
-                        </md-card-title>
-                        <md-card-content>
-                            <checkers-game-stats></checkers-game-stats>
-                        </md-card-content>
-                    </md-card>
-                    
-                    <md-card md-theme="card-red" class="cb-card-stats">
-                        <md-card-title>
-                            <md-card-title-text>
-                                <span class="md-headline">Winning Probablity</span>
-                            </md-card-title-text>
-                        </md-card-title>
-                        <md-card-content>
-                            <checkers-mcts-stats></checkers-mcts-stats>
-                        </md-card-content>
-                    </md-card>
-                </div>
-            </div>
-        </md-content>
+            </md-content>
+        </div>
     </div>
 
     <script src="bower_components/jquery/dist/jquery.js"></script>

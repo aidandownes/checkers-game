@@ -20,10 +20,28 @@ function configureThemes($mdThemingProvider) {
 }
 exports.AppModule.config(configureThemes);
 class AppController {
-    constructor(checkers) {
+    constructor(checkers, $mdSidenav, $scope) {
         this.checkers = checkers;
+        this.$mdSidenav = $mdSidenav;
+        this.$scope = $scope;
+        this.computeOptions = checkers.getComputeOptions();
+        $scope.$watchCollection(() => this.computeOptions, (options) => {
+            checkers.setComputeOptions(options);
+        });
+        $scope.$watch(() => this.isSidenavOpen, (newValue, oldValue) => {
+            if (!newValue && oldValue) {
+                this.checkers.reset();
+            }
+        });
+    }
+    toggleMenu() {
+        this.$mdSidenav('left').toggle();
+    }
+    restart() {
+        this.checkers.reset();
     }
 }
+exports.AppModule.controller('AppController', AppController);
 
 },{"./checkers-module":8}],2:[function(require,module,exports){
 "use strict";
@@ -823,16 +841,35 @@ const DEFAULT_MAX_ITERATIONS = 10000;
 class Checkers {
     constructor($timeout) {
         this.$timeout = $timeout;
+        this.setComputeOptions({
+            maxIterations: DEFAULT_MAX_ITERATIONS,
+            maxTime: DEFAULT_MAX_TIME_MS
+        });
         this.reset();
     }
-    reset(maxTime = DEFAULT_MAX_TIME_MS, maxIterations = DEFAULT_MAX_ITERATIONS) {
+    reset() {
         this.boards = [];
         this.boards.push(new checkers_bitboard_1.Bitboard());
         this.startTime = (new Date()).getTime();
-        this.uctSearch = new uct_1.UctSearch(maxIterations, maxTime);
+        this.uctSearch = new uct_1.UctSearch(this.computeOptions.maxIterations, this.computeOptions.maxTime);
+        this.searchResult = null;
+    }
+    setComputeOptions(computeOptions) {
+        this.computeOptions = computeOptions;
+    }
+    getComputeOptions() {
+        return this.computeOptions;
     }
     getComputerPlayer() {
         return game_model_1.Player.Two;
+    }
+    getHumanPlayer() {
+        return game_model_1.Player.One;
+    }
+    getOpponent(player) {
+        if (player == game_model_1.Player.None)
+            return game_model_1.Player.None;
+        return player == game_model_1.Player.One ? game_model_1.Player.Two : game_model_1.Player.One;
     }
     getCurrentPlayer() {
         return this.getCurrentBoard().player;

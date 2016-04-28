@@ -19,7 +19,25 @@ function configureThemes($mdThemingProvider) {
 }
 exports.AppModule.config(configureThemes);
 class AppController {
-    constructor(checkers) {
+    constructor(checkers, $mdSidenav, $scope) {
         this.checkers = checkers;
+        this.$mdSidenav = $mdSidenav;
+        this.$scope = $scope;
+        this.computeOptions = checkers.getComputeOptions();
+        $scope.$watchCollection(() => this.computeOptions, (options) => {
+            checkers.setComputeOptions(options);
+        });
+        $scope.$watch(() => this.isSidenavOpen, (newValue, oldValue) => {
+            if (!newValue && oldValue) {
+                this.checkers.reset();
+            }
+        });
+    }
+    toggleMenu() {
+        this.$mdSidenav('left').toggle();
+    }
+    restart() {
+        this.checkers.reset();
     }
 }
+exports.AppModule.controller('AppController', AppController);
