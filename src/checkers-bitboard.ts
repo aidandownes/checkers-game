@@ -378,6 +378,9 @@ export class Bitboard implements GameState {
                 let kings = (this.kings & sourceMask) ? 
                     (this.kings | destinationMask) ^ sourceMask:
                     this.kings | (destinationMask & 0xF);
+                if (kings & temp) {
+                    kings = kings ^ temp;
+                }
                 let canJumpAgain = !(destinationMask & 0xF) &&
                     (this.getJumpersWhite(whitePieces, blackPieces, kings) & destinationMask);
                 let player = canJumpAgain ? Player.One : Player.Two;
@@ -412,6 +415,9 @@ export class Bitboard implements GameState {
                 let kings = (this.kings & sourceMask) ? 
                     (this.kings | destinationMask) ^ sourceMask:
                     this.kings | (destinationMask & 0xF0000000);
+                if (kings & temp) {
+                    kings = kings ^ temp;
+                }
                 let canJumpAgain = !(destinationMask & 0xF0000000) &&
                     (this.getJumpersBlack(whitePieces, blackPieces, kings) & destinationMask);
                 let player = canJumpAgain ? Player.Two : Player.One;
