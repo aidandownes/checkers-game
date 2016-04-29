@@ -1,9 +1,9 @@
 /// <reference path="../typings/browser.d.ts" />
 import {Bitboard, CheckersMove} from './checkers-bitboard';
-import {UctSearch, SearchResult} from './uct';
+import {UctSearchService, SearchResult} from './uct';
 import {Player} from './game-model';
 
-export {SearchResult} from './uct';
+export {SearchResult, UctSearchService} from './uct';
 
 const DEFAULT_MAX_TIME_MS = 500;
 const DEFAULT_MAX_ITERATIONS = 10000;
@@ -16,44 +16,40 @@ export interface ComputeOptions {
 export class Checkers {
     private boards: Bitboard[];
     private startTime: number;
-    private uctSearch: UctSearch;
     private searchResult: SearchResult;
     private computeOptions: ComputeOptions;
-    
-    constructor(private $timeout:ng.ITimeoutService) {
+
+    constructor(private $timeout: ng.ITimeoutService, private uctSearchService: UctSearchService) {
         this.setComputeOptions({
             maxIterations: DEFAULT_MAX_ITERATIONS,
             maxTime: DEFAULT_MAX_TIME_MS
         });
-        
         this.reset();
     }
-    
+
     reset() {
         this.boards = [];
         this.boards.push(new Bitboard());
         this.startTime = (new Date()).getTime();
-        this.uctSearch = new UctSearch(this.computeOptions.maxIterations, 
-            this.computeOptions.maxTime);
         this.searchResult = null;
     }
-    
+
     setComputeOptions(computeOptions: ComputeOptions) {
         this.computeOptions = computeOptions;
     }
-    
-    getComputeOptions() : ComputeOptions {
+
+    getComputeOptions(): ComputeOptions {
         return this.computeOptions;
     }
-    
+
     getComputerPlayer() {
         return Player.Two;
     }
-    
+
     getHumanPlayer() {
         return Player.One;
     }
-    
+
     getOpponent(player: Player): Player {
         if (player == Player.None) return Player.None;
         return player == Player.One ? Player.Two : Player.One;
@@ -70,15 +66,15 @@ export class Checkers {
     getStartTime(): number {
         return this.startTime;
     }
-    
+
     getSearchResult(): SearchResult {
         return this.searchResult;
     }
 
     tryMove(source: number, destination: number): boolean {
         let currentBoard = this.getCurrentBoard();
-        let {success, board} = currentBoard.tryMove({source:source, destination:destination, player:currentBoard.player});
-        
+        let {success, board} = currentBoard.tryMove({ source: source, destination: destination, player: currentBoard.player });
+
         // Move successful
         if (success) {
             this.boards.push(board);
@@ -90,9 +86,11 @@ export class Checkers {
             return false;
         }
     }
-    
+
     doComputerPlayerMove() {
-        this.searchResult = this.uctSearch.search(this.getCurrentBoard());
+        this.searchResult = this.uctSearchService.search(this.getCurrentBoard(),
+            this.computeOptions.maxIterations,
+            this.computeOptions.maxTime);
         if (this.searchResult.move) {
             let move = <CheckersMove>this.searchResult.move;
             this.tryMove(move.source, move.destination);

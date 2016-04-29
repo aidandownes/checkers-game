@@ -1,31 +1,14 @@
-/// <reference path="../typings/browser.d.ts" />
+/// <reference path="../typings/browser.d.ts" />Asset
 
-import * as Asserts from './assert';
-
-export interface Hashable {
-    getHashCode(): number;
-}
-
-export class HashMap<T extends Hashable, V> {
-    private map: Map<number, V> = new Map<number, V>();
-    
-    set(key:T, value:V) {
-        Asserts.assert(!!key);
-        this.map.set(key.getHashCode(), value);
-    }
-    
-    get(key:T): V {
-        Asserts.assert(!!key);
-        return this.map.get(key.getHashCode()); 
-    }
-    
-    has(key:T): boolean {
-        Asserts.assert(!!key);
-        return this.map.has(key.getHashCode());
-    }
-}
-
+/**
+ * Helper functions for arrays.
+ */
 export class Arrays {
+    /**
+     * Finds the maximum value in a array.
+     * @param arr The array to search.
+     * @param compare The comparison function to use.
+     */
     static max<T>(arr: T[], compare: (a:T, b:T) => boolean) {
         let len = arr.length;
         let max:T;
@@ -46,11 +29,18 @@ class ListNode<T> {
     }
 }
 
+/**
+ * Represents a link list node.
+ */
 export class List<T> {
-    start: ListNode<T>;
-    end: ListNode<T>;
-    size: number;
+    private start: ListNode<T>;
+    private end: ListNode<T>;
+    private size: number;
     
+    /**
+     * Creates a linked list.
+     * @param iterable Optional. A iterable object to initially published the list.
+     */
     constructor(iterable?: T[]) {
         this.size = 0;
         if (iterable) {
@@ -58,6 +48,11 @@ export class List<T> {
         }
     }
     
+    /**
+     * Add an item to the list.
+     * @param data The item to add.
+     * @remarks Runs in constant time.
+     */
     add(data: T) {
         if (!this.start) {
             this.start = new ListNode(data);
@@ -69,6 +64,11 @@ export class List<T> {
         this.size++;
     }
     
+    /**
+     * Deletes an item to the list.
+     * @param data The data to remove from the list.
+     * @remarks Runs in constant time.
+     */
     delete(data:T) {
         let current = this.start;
         let previous = this.start;
@@ -92,6 +92,11 @@ export class List<T> {
         }
     }
     
+    /**
+     * Gets the item at the specifed index. 
+     * @param index Index of item.
+     * @remarks Runs in linear time.
+     */
     item(index: number) : T {
         let current = this.start;
         while(current) {
@@ -103,6 +108,10 @@ export class List<T> {
         }
     }
     
+    /**
+     * Runs a function for each item in the list. 
+     * @param f The function to run for each item in the list.
+     */
     forEach(f: (item:T) => void) {
         let current = this.start;
         while(current) {
@@ -111,54 +120,3 @@ export class List<T> {
         }
     }
 }
-
-
-// function List() {
-//  List.makeNode = function() { 
-//   return {data: null, next: null}; 
-//  }; 
- 
-//  this.start = null; 
-//  this.end = null; 
-  
-
-//  this.insertAsFirst = function(d) { 
-//   var temp = List.makeNode(); 
-//   temp.next = this.start; 
-//   this.start = temp; 
-//   temp.data = d; 
-//  }; 
-
-//  this.insertAfter = function(t, d) { 
-//   var current = this.start; 
-//   while (current !== null) { 
-//    if (current.data === t) { 
-//     var temp = List.makeNode();
-//     temp.data = d; 
-//     temp.next = current.next; 
-//     if (current === this.end) this.end = temp;
-//     current.next = temp; 
-//     return; 
-//    } 
-//    current = current.next; 
-//    }
-//   };
-
-//   this.item = function(i) { 
-//    var current = this.start; 
-//    while (current !== null) { 
-//     i--; 
-//     if (i === 0) return current; 
-//     current = current.next; 
-//    } 
-//    return null; 
-//   }; 
-
-//  this.each = function(f) {
-//   var current = this.start;
-//   while (current !== null) { 
-//    f(current); 
-//    current = current.next; 
-//   } 
-//  };
-// }

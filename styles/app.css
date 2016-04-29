@@ -34,3 +34,6 @@ dl.cb-kv-list {
     width: 30%; }
   dl.cb-kv-list dd {
     width: 40%; }
+
+md-sidenav md-content h3 {
+  margin: 8px; }

@@ -3,16 +3,28 @@ import * as asserts from './assert';
 import {Player, Move, GameState, Result} from './game-model';
 import {List, Arrays} from './collections';
 
+/** Exploration constant */
 const C = 1.44;
 
-function getRandomNumber(upperBounds:number) {
+/** 
+ * Gets a random integer.
+ * @param upperBounds Upper bounds for random integer. Exclusive.
+ * @return A random integer between 0 and upperBounds. 
+ */
+function getRandomInteger(upperBounds:number) {
     return Math.floor(Math.random() * upperBounds);
 }
 
+/**
+ * Represents a reward for the current node and player.
+ */
 interface Reward {
     (node:Node, player:Player): number;
 }
 
+/**
+ * Represents the best move along with stats about the search.
+ */
 export interface SearchResult {
     move: Move;
     winProbabilty: number;
@@ -20,6 +32,9 @@ export interface SearchResult {
     iterations: number;
 }
 
+/**
+ * Represents a node in the game state tree.
+ */
 class Node {
     validMoves: List<Move>;
     isTerminal: boolean;
@@ -29,46 +44,77 @@ class Node {
     uctScore: number = 0;
     confidence: number = 0;
     
+    /**
+     * Creates a new node. 
+     * @param parent The parent node.
+     * @param state The game state associated with this node.
+     * @param move Optional.  The move that lead to the associated game state.
+     */
     constructor(public parent:Node, public state:GameState, public move?:Move) {
         this.validMoves = new List(state.getMoves());
         this.isTerminal = this.validMoves.size == 0;
     }
     
+    /**
+     * Wheter all moves have been tried.
+     * @retun True if all moves have been tried. False otherwise.
+     */
     get isfullyExpanded(): boolean {
         return this.validMoves.size == 0;
     }
     
-    getUntriedMove() {
-        let index = getRandomNumber(this.validMoves.size);
+    /**
+     * Gets a move that has not been tried.
+     * @return The untried move.
+     */
+    getUntriedMove(): Move {
+        let index = getRandomInteger(this.validMoves.size);
         let move = this.validMoves.item(index);
         this.validMoves.delete(move);
         return move;
     }
     
+    /**
+     * Adds a new node to the tree as a child.
+     * @param child The new child node.
+     */
     addChild(child: Node) {
         this.children.push(child);
     }
     
 }
 
-export class UctSearch {
+/**
+ * Represents a search for the best move using the
+ * upper confidence bounds for tree algorithm + MCTS.
+ */
+export class UctSearchService {
    
-    constructor(private maxIterations:number = 1000, 
-        private maxTime:number = 1000) {
-        
+    /**
+     * Creates an instance of the search service.
+     */
+    constructor() {
     }
     
-    search(rootState:GameState): SearchResult {
+    /**
+     * Searches the game state for the next move. 
+     * @param rootState The game state to start the search from.
+     * @param maxIterations Optinal. The maximum number of iterations to perform the search.
+     * @param maxTime Optinal. The maximum time to perform the search.
+     */
+    search(rootState:GameState, 
+            maxIterations:number = 1000,
+            maxTime:number = 1000): SearchResult {
         let root = new Node(null, rootState);
         let startTime =  Date.now();
         let i:number;
         
-        for (i = 0; i < this.maxIterations; i++) {
+        for (i = 0; i < maxIterations; i++) {
             let current = this.treePolicy(root, rootState);
             let reward = this.defaultPolicy(current.state);
             this.backup(current, reward);
             
-            if (Date.now() - startTime > this.maxTime) {
+            if (Date.now() - startTime > maxTime) {
                 break;
             }
         }
@@ -103,7 +149,7 @@ export class UctSearch {
     private defaultPolicy(state:GameState): Reward  {
         let moves = state.getMoves();
         while(moves.length > 0) {
-            let index = getRandomNumber(moves.length);
+            let index = getRandomInteger(moves.length);
             let move = moves[index];
             state = state.doMove(move);
             moves = state.getMoves();
@@ -141,3 +187,7 @@ export class UctSearch {
         return Arrays.max(node.children, (a, b) => a.uctScore > b.uctScore);
     }
 }
+
+
+export const UctSearchModule = angular.module('UctSearchModule', [])
+    .service('uctSearchService', UctSearchService);

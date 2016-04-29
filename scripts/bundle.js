@@ -830,23 +830,26 @@ const checkers_service_1 = require('./checkers-service');
 const checkers_board_1 = require('./checkers-board');
 const checkers_game_stats_1 = require('./checkers-game-stats');
 const checkers_mcts_stats_1 = require('./checkers-mcts-stats');
-exports.CheckersModule = angular.module('Checkers', []);
+const uct_1 = require('./uct');
+exports.CheckersModule = angular.module('Checkers', [uct_1.UctSearchModule.name]);
 exports.CheckersModule.provider('checkers', checkers_service_1.CheckersProvider);
 exports.CheckersModule.component('checkersBoard', checkers_board_1.CheckersBoard);
 exports.CheckersModule.component('checkersGameStats', checkers_game_stats_1.CheckersGameStats);
 exports.CheckersModule.component('checkersMctsStats', checkers_mcts_stats_1.CheckersMctsStats);
 exports.CheckersModule.filter('timeFilter', checkers_game_stats_1.TimeFormatFilter);
 
-},{"./checkers-board":4,"./checkers-game-stats":6,"./checkers-mcts-stats":7,"./checkers-service":9}],9:[function(require,module,exports){
+},{"./checkers-board":4,"./checkers-game-stats":6,"./checkers-mcts-stats":7,"./checkers-service":9,"./uct":13}],9:[function(require,module,exports){
 "use strict";
 const checkers_bitboard_1 = require('./checkers-bitboard');
-const uct_1 = require('./uct');
 const game_model_1 = require('./game-model');
+var uct_1 = require('./uct');
+exports.UctSearchService = uct_1.UctSearchService;
 const DEFAULT_MAX_TIME_MS = 500;
 const DEFAULT_MAX_ITERATIONS = 10000;
 class Checkers {
-    constructor($timeout) {
+    constructor($timeout, uctSearchService) {
         this.$timeout = $timeout;
+        this.uctSearchService = uctSearchService;
         this.setComputeOptions({
             maxIterations: DEFAULT_MAX_ITERATIONS,
             maxTime: DEFAULT_MAX_TIME_MS
@@ -857,7 +860,6 @@ class Checkers {
         this.boards = [];
         this.boards.push(new checkers_bitboard_1.Bitboard());
         this.startTime = (new Date()).getTime();
-        this.uctSearch = new uct_1.UctSearch(this.computeOptions.maxIterations, this.computeOptions.maxTime);
         this.searchResult = null;
     }
     setComputeOptions(computeOptions) {
@@ -904,7 +906,7 @@ class Checkers {
         }
     }
     doComputerPlayerMove() {
-        this.searchResult = this.uctSearch.search(this.getCurrentBoard());
+        this.searchResult = this.uctSearchService.search(this.getCurrentBoard(), this.computeOptions.maxIterations, this.computeOptions.maxTime);
         if (this.searchResult.move) {
             let move = this.searchResult.move;
             this.tryMove(move.source, move.destination);
@@ -921,25 +923,6 @@ exports.CheckersProvider = CheckersProvider;
 
 },{"./checkers-bitboard":3,"./game-model":11,"./uct":13}],10:[function(require,module,exports){
 "use strict";
-const Asserts = require('./assert');
-class HashMap {
-    constructor() {
-        this.map = new Map();
-    }
-    set(key, value) {
-        Asserts.assert(!!key);
-        this.map.set(key.getHashCode(), value);
-    }
-    get(key) {
-        Asserts.assert(!!key);
-        return this.map.get(key.getHashCode());
-    }
-    has(key) {
-        Asserts.assert(!!key);
-        return this.map.has(key.getHashCode());
-    }
-}
-exports.HashMap = HashMap;
 class Arrays {
     static max(arr, compare) {
         let len = arr.length;
@@ -1020,7 +1003,7 @@ class List {
 }
 exports.List = List;
 
-},{"./assert":2}],11:[function(require,module,exports){
+},{}],11:[function(require,module,exports){
 "use strict";
 (function (Player) {
     Player[Player["None"] = 0] = "None";
@@ -1165,7 +1148,7 @@ const asserts = require('./assert');
 const game_model_1 = require('./game-model');
 const collections_1 = require('./collections');
 const C = 1.44;
-function getRandomNumber(upperBounds) {
+function getRandomInteger(upperBounds) {
     return Math.floor(Math.random() * upperBounds);
 }
 class Node {
@@ -1185,7 +1168,7 @@ class Node {
         return this.validMoves.size == 0;
     }
     getUntriedMove() {
-        let index = getRandomNumber(this.validMoves.size);
+        let index = getRandomInteger(this.validMoves.size);
         let move = this.validMoves.item(index);
         this.validMoves.delete(move);
         return move;
@@ -1194,20 +1177,18 @@ class Node {
         this.children.push(child);
     }
 }
-class UctSearch {
-    constructor(maxIterations = 1000, maxTime = 1000) {
-        this.maxIterations = maxIterations;
-        this.maxTime = maxTime;
+class UctSearchService {
+    constructor() {
     }
-    search(rootState) {
+    search(rootState, maxIterations = 1000, maxTime = 1000) {
         let root = new Node(null, rootState);
         let startTime = Date.now();
         let i;
-        for (i = 0; i < this.maxIterations; i++) {
+        for (i = 0; i < maxIterations; i++) {
             let current = this.treePolicy(root, rootState);
             let reward = this.defaultPolicy(current.state);
             this.backup(current, reward);
-            if (Date.now() - startTime > this.maxTime) {
+            if (Date.now() - startTime > maxTime) {
                 break;
             }
         }
@@ -1239,7 +1220,7 @@ class UctSearch {
     defaultPolicy(state) {
         let moves = state.getMoves();
         while (moves.length > 0) {
-            let index = getRandomNumber(moves.length);
+            let index = getRandomInteger(moves.length);
             let move = moves[index];
             state = state.doMove(move);
             moves = state.getMoves();
@@ -1273,7 +1254,9 @@ class UctSearch {
         return collections_1.Arrays.max(node.children, (a, b) => a.uctScore > b.uctScore);
     }
 }
-exports.UctSearch = UctSearch;
+exports.UctSearchService = UctSearchService;
+exports.UctSearchModule = angular.module('UctSearchModule', [])
+    .service('uctSearchService', UctSearchService);
 
 },{"./assert":2,"./collections":10,"./game-model":11}]},{},[1,2,3,4,5,6,7,8,9,10,11,12,13])
 

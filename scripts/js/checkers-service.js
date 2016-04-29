@@ -1,12 +1,14 @@
 "use strict";
 const checkers_bitboard_1 = require('./checkers-bitboard');
-const uct_1 = require('./uct');
 const game_model_1 = require('./game-model');
+var uct_1 = require('./uct');
+exports.UctSearchService = uct_1.UctSearchService;
 const DEFAULT_MAX_TIME_MS = 500;
 const DEFAULT_MAX_ITERATIONS = 10000;
 class Checkers {
-    constructor($timeout) {
+    constructor($timeout, uctSearchService) {
         this.$timeout = $timeout;
+        this.uctSearchService = uctSearchService;
         this.setComputeOptions({
             maxIterations: DEFAULT_MAX_ITERATIONS,
             maxTime: DEFAULT_MAX_TIME_MS
@@ -17,7 +19,6 @@ class Checkers {
         this.boards = [];
         this.boards.push(new checkers_bitboard_1.Bitboard());
         this.startTime = (new Date()).getTime();
-        this.uctSearch = new uct_1.UctSearch(this.computeOptions.maxIterations, this.computeOptions.maxTime);
         this.searchResult = null;
     }
     setComputeOptions(computeOptions) {
@@ -64,7 +65,7 @@ class Checkers {
         }
     }
     doComputerPlayerMove() {
-        this.searchResult = this.uctSearch.search(this.getCurrentBoard());
+        this.searchResult = this.uctSearchService.search(this.getCurrentBoard(), this.computeOptions.maxIterations, this.computeOptions.maxTime);
         if (this.searchResult.move) {
             let move = this.searchResult.move;
             this.tryMove(move.source, move.destination);

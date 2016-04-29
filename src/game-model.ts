@@ -1,15 +1,24 @@
+/**
+ * Represents a game player.
+ */
 export enum Player {
     None,
     One,
     Two
 }
 
+/**
+ * Represents a game result.
+ */
 export enum Result {
     Win,
     Lose,
     Draw
 }
 
+/**
+ * Represents a move in game.
+ */
 export interface Move {
 }
 
@@ -49,9 +58,13 @@ export interface GameState {
     
     /**
      * Gets the current player.
-     * @return the current player.
+     * @return The current player.
      */
     getPlayerToMove(): Player;
     
+    /** 
+     * Gets the opponent.
+     * @param player The player whose opponent is returned.
+     */
     getOpponent(player: Player): Player;
 }
