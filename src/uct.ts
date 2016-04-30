@@ -52,7 +52,7 @@ class Node {
      */
     constructor(public parent:Node, public state:GameState, public move?:Move) {
         this.validMoves = new List(state.getMoves());
-        this.isTerminal = this.validMoves.size == 0;
+        this.isTerminal = this.validMoves.getSize() == 0;
     }
     
     /**
@@ -60,7 +60,7 @@ class Node {
      * @retun True if all moves have been tried. False otherwise.
      */
     get isfullyExpanded(): boolean {
-        return this.validMoves.size == 0;
+        return this.validMoves.getSize() == 0;
     }
     
     /**
@@ -68,7 +68,7 @@ class Node {
      * @return The untried move.
      */
     getUntriedMove(): Move {
-        let index = getRandomInteger(this.validMoves.size);
+        let index = getRandomInteger(this.validMoves.getSize());
         let move = this.validMoves.item(index);
         this.validMoves.delete(move);
         return move;

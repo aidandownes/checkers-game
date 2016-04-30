@@ -499,6 +499,24 @@ const checkers_bitboard_1 = require('./checkers-bitboard');
 const game_model_1 = require('./game-model');
 const ROW_LENGTH = 8;
 const COLUMN_LENGTH = 8;
+class Point {
+    constructor(x, y) {
+        this.x_ = x;
+        this.y_ = y;
+    }
+    get x() {
+        return this.x_;
+    }
+    get y() {
+        return this.y_;
+    }
+    add(other) {
+        return new Point(this.x_ + other.x_, this.y_ + other.y_);
+    }
+    subtract(other) {
+        return new Point(this.x_ - other.x_, this.y_ - other.y_);
+    }
+}
 const BoardSquareArray = (function () {
     let squares = [];
     for (let i = 0; i < ROW_LENGTH; i++) {
@@ -513,36 +531,25 @@ function toPosition(square, squareSize) {
     let boardSquare = BoardSquareArray[square];
     let x = boardSquare.column * squareSize;
     let y = boardSquare.row * squareSize;
-    return { x: x, y: y };
+    return new Point(x, y);
 }
 function toSquare(position, squareSize) {
     var row = Math.floor(position.y / squareSize);
     var column = Math.floor(position.x / squareSize);
     return BoardSquareArray.findIndex(bs => bs.column == column && bs.row == row);
 }
-function add(p1, p2) {
-    return {
-        x: p1.x + p2.x,
-        y: p1.y + p2.y
-    };
-}
-function subtract(p1, p2) {
-    return {
-        x: p1.x - p2.x,
-        y: p1.y - p2.y
-    };
-}
 class CheckersBoardController {
-    constructor(checkers, $element, $window, $timeout, $log, $scope) {
+    constructor(checkers, $element, $window, $timeout, $log, $scope, $q) {
         this.checkers = checkers;
         this.$element = $element;
         this.$window = $window;
         this.$timeout = $timeout;
         this.$log = $log;
         this.$scope = $scope;
-        let canvasElement = $element[0].querySelector('canvas');
-        this.canvas = angular.element(canvasElement);
-        this.ctx = canvasElement.getContext('2d');
+        this.$q = $q;
+        this.canvasElement = $element[0].querySelector('canvas');
+        this.canvas = angular.element(this.canvasElement);
+        this.ctx = this.canvasElement.getContext('2d');
         this.width = this.$element.width();
         this.height = this.$element.height();
         this.squareSize = this.width / ROW_LENGTH;
@@ -551,20 +558,32 @@ class CheckersBoardController {
         $scope.$watch(() => this.checkers.getCurrentBoard(), () => this.render());
     }
     $postLink() {
+        this.spritesPromise = this.loadImage(this.spritesImageUrl);
         this.render();
     }
+    loadImage(src) {
+        let defer = this.$q.defer();
+        let img = new Image();
+        img.src = src;
+        img.onload = (ev) => {
+            defer.resolve(img);
+        };
+        return defer.promise;
+    }
     render() {
-        this.$timeout(() => {
-            this.canvas[0].width = this.width;
-            this.canvas[0].height = this.width;
-            this.drawBoard();
-            this.drawPieces(this.checkers.getCurrentBoard());
+        this.spritesPromise.then(() => {
+            this.$timeout(() => {
+                this.drawBoard();
+                this.drawPieces(this.checkers.getCurrentBoard());
+            });
         });
     }
     resize() {
         this.width = this.$element.width();
         this.height = this.$element.height();
         this.squareSize = this.width / ROW_LENGTH;
+        this.canvasElement.width = this.width;
+        this.canvasElement.height = this.width;
         this.render();
     }
     handleMouseDown(ev) {
@@ -575,7 +594,7 @@ class CheckersBoardController {
             let squarePosition = toPosition(sourceSquare, this.squareSize);
             this.dragTarget = sourceSquare;
             this.dragPosition = p;
-            this.dragTranslation = subtract(p, squarePosition);
+            this.dragTranslation = p.subtract(squarePosition);
             this.canvas.on('mousemove', this.handleMouseMove.bind(this));
             this.canvas.on('mouseup', this.handleMouseUp.bind(this));
             this.render();
@@ -600,52 +619,36 @@ class CheckersBoardController {
     }
     getMousePoint(ev) {
         let rect = this.canvas[0].getBoundingClientRect();
-        return {
-            x: ev.clientX - rect.left,
-            y: ev.clientY - rect.top
-        };
+        return new Point(ev.clientX - rect.left, ev.clientY - rect.top);
     }
-    drawPiece(point, fillColor, strokeColor, translation) {
-        const halfSquare = (this.squareSize * 0.5);
-        const x = point.x + translation.x;
-        const y = point.y + translation.y;
-        this.ctx.beginPath();
-        this.ctx.fillStyle = fillColor;
-        this.ctx.lineWidth = 5;
-        this.ctx.strokeStyle = strokeColor;
-        this.ctx.arc(x, y, halfSquare - 10, 0, 2 * Math.PI, false);
-        this.ctx.closePath();
-        this.ctx.stroke();
-        this.ctx.fill();
+    drawPiece(point, player, isKing, translation) {
+        this.spritesPromise.then(img => {
+            let sourceX = isKing ? (2 * this.spriteSize) : 0;
+            if (player == game_model_1.Player.One) {
+                sourceX += this.spriteSize;
+            }
+            let spriteAdjust = new Point(2, 2);
+            let drawPoint = point.add(spriteAdjust);
+            if (translation) {
+                drawPoint = drawPoint.subtract(translation);
+            }
+            this.ctx.drawImage(img, sourceX, 0, this.spriteSize, this.spriteSize, drawPoint.x, drawPoint.y, this.squareSize, this.squareSize);
+        });
     }
     drawPieces(bitboard) {
         let drawDragTarget;
-        let translation = { x: this.squareSize * 0.5, y: this.squareSize * 0.5 };
         for (let i = 0; i < checkers_bitboard_1.SQUARE_COUNT; i++) {
-            let fillColor;
-            let strokeColor;
-            switch (bitboard.getPlayerAtSquare(i)) {
-                case game_model_1.Player.One:
-                    fillColor = 'white';
-                    strokeColor = 'black';
-                    break;
-                case game_model_1.Player.Two:
-                    fillColor = 'black';
-                    strokeColor = 'white';
-                    break;
-                default:
-                    continue;
+            let player = bitboard.getPlayerAtSquare(i);
+            if (player == game_model_1.Player.None) {
+                continue;
             }
-            if (bitboard.isKing(i)) {
-                strokeColor = 'red';
-            }
+            let isKing = bitboard.isKing(i);
             if (i == this.dragTarget) {
-                let dragTranslation = subtract(translation, this.dragTranslation);
-                drawDragTarget = this.drawPiece.bind(this, this.dragPosition, fillColor, strokeColor, dragTranslation);
+                drawDragTarget = this.drawPiece.bind(this, this.dragPosition, player, isKing, this.dragTranslation);
             }
             else {
                 let position = toPosition(i, this.squareSize);
-                this.drawPiece(position, fillColor, strokeColor, translation);
+                this.drawPiece(position, player, isKing);
             }
         }
         if (drawDragTarget) {
@@ -653,7 +656,7 @@ class CheckersBoardController {
         }
     }
     drawSquare(row, column) {
-        let color = row % 2 == column % 2 ? 'white' : 'black';
+        let color = (row % 2 == column % 2) ? 'white' : 'black';
         let x = row * this.squareSize;
         let y = column * this.squareSize;
         this.ctx.fillStyle = color;
@@ -671,7 +674,10 @@ exports.CheckersBoard = {
     template: `<canvas>
         <span id="no_html5">Your Browser Does Not Support HTML5's Canvas Feature.</span>
     </canvas>`,
-    bindings: {},
+    bindings: {
+        spritesImageUrl: '@',
+        spriteSize: '<'
+    },
     controller: CheckersBoardController
 };
 
@@ -1000,6 +1006,9 @@ class List {
             current = current.next;
         }
     }
+    getSize() {
+        return this.size;
+    }
 }
 exports.List = List;
 
@@ -1162,13 +1171,13 @@ class Node {
         this.uctScore = 0;
         this.confidence = 0;
         this.validMoves = new collections_1.List(state.getMoves());
-        this.isTerminal = this.validMoves.size == 0;
+        this.isTerminal = this.validMoves.getSize() == 0;
     }
     get isfullyExpanded() {
-        return this.validMoves.size == 0;
+        return this.validMoves.getSize() == 0;
     }
     getUntriedMove() {
-        let index = getRandomInteger(this.validMoves.size);
+        let index = getRandomInteger(this.validMoves.getSize());
         let move = this.validMoves.item(index);
         this.validMoves.delete(move);
         return move;

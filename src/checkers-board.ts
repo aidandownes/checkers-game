@@ -5,9 +5,30 @@ import {Player} from './game-model';
 const ROW_LENGTH = 8;
 const COLUMN_LENGTH = 8;
 
-interface Point {
-    x: number;
-    y: number;
+class Point {
+    private x_: number;
+    private y_: number;
+    
+    constructor(x: number, y: number) {
+        this.x_ = x;
+        this.y_ = y;
+    }
+    
+    get x() : number {
+        return this.x_;
+    }
+    
+    get y() : number {
+        return this.y_;
+    }
+    
+    add(other:Point): Point {
+        return new Point(this.x_ + other.x_, this.y_ + other.y_);
+    }
+    
+    subtract(other:Point): Point {
+        return new Point(this.x_ - other.x_, this.y_ - other.y_);
+    }
 }
 
 interface BoardSquare {
@@ -15,89 +36,96 @@ interface BoardSquare {
     column: number;
 }
 
-const BoardSquareArray = (function() : BoardSquare[] {
+const BoardSquareArray = (function (): BoardSquare[] {
     let squares: BoardSquare[] = [];
     for (let i = 0; i < ROW_LENGTH; i++) {
         let mod2 = i % 2;
-        for (let j = 7 - mod2; j >  0 - mod2; j -= 2) {
-            squares.push({row: i, column: j});
+        for (let j = 7 - mod2; j > 0 - mod2; j -= 2) {
+            squares.push({ row: i, column: j });
         }
     }
     return squares.reverse();
 })();
 
-function toPosition(square:number, squareSize:number) : Point {
+function toPosition(square: number, squareSize: number): Point {
     let boardSquare = BoardSquareArray[square];
     let x = boardSquare.column * squareSize;
     let y = boardSquare.row * squareSize;
-    return {x, y};
+    return new Point(x, y);
 }
 
-function toSquare(position: Point,  squareSize:number): number {
+function toSquare(position: Point, squareSize: number): number {
     var row = Math.floor(position.y / squareSize);
     var column = Math.floor(position.x / squareSize);
     return BoardSquareArray.findIndex(bs => bs.column == column && bs.row == row);
 }
 
-function add(p1:Point, p2:Point) {
-    return {
-        x: p1.x + p2.x,
-        y: p1.y + p2.y
-    };
-}
-
-function subtract(p1:Point, p2:Point) {
-    return {
-        x: p1.x - p2.x,
-        y: p1.y - p2.y
-    };
-}
-
 class CheckersBoardController {
     ctx: CanvasRenderingContext2D;
     canvas: ng.IAugmentedJQuery;
+    canvasElement: HTMLCanvasElement;
     dragTarget: number;
     dragPosition: Point;
     dragTranslation: Point;
     squareSize: number;
-    width:number;
-    height:number;
+    width: number;
+    height: number;
+    spritesPromise: ng.IPromise<HTMLImageElement>;
+    spritesImageUrl: string;
+    spriteSize: number;
 
     constructor(private checkers: Checkers, private $element: ng.IAugmentedJQuery,
         private $window: ng.IWindowService, private $timeout: ng.ITimeoutService,
-        private $log: ng.ILogService, private $scope:ng.IScope) {
-        let canvasElement = <HTMLCanvasElement>$element[0].querySelector('canvas');
-        this.canvas = angular.element(canvasElement);
-        this.ctx = canvasElement.getContext('2d');
+        private $log: ng.ILogService, private $scope: ng.IScope, private $q: ng.IQService) {
+        this.canvasElement = <HTMLCanvasElement>$element[0].querySelector('canvas');
+        this.canvas = angular.element(this.canvasElement);
+        this.ctx = this.canvasElement.getContext('2d');
         this.width = this.$element.width();
         this.height = this.$element.height();
         this.squareSize = this.width / ROW_LENGTH;
-        
+
         // Add event listeners
         this.canvas.on('mousedown', this.handleMouseDown.bind(this));
-        
+
         $scope.$watch(() => this.$element.width(), this.resize.bind(this));
         $scope.$watch(() => this.checkers.getCurrentBoard(), () => this.render());
-       
     }
 
     $postLink() {
+        this.spritesPromise = this.loadImage(this.spritesImageUrl);
         this.render();
     }
 
+    private loadImage(src: string): ng.IPromise<HTMLImageElement> {
+        let defer = this.$q.defer();
+        let img = new Image();
+        img.src = src;
+        img.onload = (ev) => {
+            defer.resolve(img);
+        };
+        return defer.promise;
+    }
+
     private render() {
-        this.$timeout(() => {
-            (<HTMLCanvasElement>this.canvas[0]).width = this.width;
-            (<HTMLCanvasElement>this.canvas[0]).height = this.width;
-            this.drawBoard();
-            this.drawPieces(this.checkers.getCurrentBoard());
+        this.spritesPromise.then(() => {
+            this.$timeout(() => {
+                this.drawBoard();
+                this.drawPieces(this.checkers.getCurrentBoard());
+            });
         });
     }
-    
+
     private resize() {
+        // Update the board's size vars;
         this.width = this.$element.width();
         this.height = this.$element.height();
         this.squareSize = this.width / ROW_LENGTH;
+        
+        // Resize the canvas;
+        this.canvasElement.width = this.width;
+        this.canvasElement.height = this.width;
+        
+        // Redraw board.
         this.render();
     }
 
@@ -108,40 +136,40 @@ class CheckersBoardController {
 
         if (player == this.checkers.getCurrentBoard().player) {
             let squarePosition = toPosition(sourceSquare, this.squareSize);
-            
+
             this.dragTarget = sourceSquare;
             this.dragPosition = p;
-            this.dragTranslation = subtract(p, squarePosition);
-            
+            this.dragTranslation = p.subtract(squarePosition);
+
             this.canvas.on('mousemove', this.handleMouseMove.bind(this));
             this.canvas.on('mouseup', this.handleMouseUp.bind(this));
             this.render();
         }
     }
-    
-    private handleMouseMove(ev:JQueryEventObject) {
+
+    private handleMouseMove(ev: JQueryEventObject) {
         let p = this.getMousePoint(ev);
         this.dragPosition = p;
         this.render();
     }
-    
-    private handleMouseUp(ev:JQueryEventObject) {
+
+    private handleMouseUp(ev: JQueryEventObject) {
         let p = this.getMousePoint(ev);
         let destinationSquare = toSquare(p, this.squareSize);
-        
+
         // Attempt move.
         if (destinationSquare >= 0) {
             this.checkers.tryMove(this.dragTarget, destinationSquare);
         }
-        
+
         // Reset dragTarget information.
         this.dragTarget = -1;
         this.dragPosition = <Point>null;
-        
+
         // Remove handlers for drag target.
         this.canvas.off('mousemove');
         this.canvas.off('mouseup');
-        
+
         // Redraw board.
         this.render();
     }
@@ -149,69 +177,50 @@ class CheckersBoardController {
     private getMousePoint(ev: JQueryEventObject): Point {
         let rect = this.canvas[0].getBoundingClientRect();
         // Get Mouse position in canvas coordinates.
-        return {
-            x: ev.clientX - rect.left,
-            y: ev.clientY - rect.top
-        };
+        return new Point(ev.clientX - rect.left, ev.clientY - rect.top);
     }
 
-    private drawPiece(point: Point, fillColor:string, strokeColor:string, translation:Point) {
-        const halfSquare = (this.squareSize * 0.5);
-        const x = point.x + translation.x;
-        const y = point.y + translation.y;
-        
-        this.ctx.beginPath();
-        this.ctx.fillStyle = fillColor;
-        this.ctx.lineWidth = 5;
-        this.ctx.strokeStyle = strokeColor;
-        this.ctx.arc(x,y,
-            halfSquare - 10 /* radius */,
-            0,
-            2 * Math.PI,
-            false);
-        this.ctx.closePath();
-        this.ctx.stroke();
-        this.ctx.fill();
+    private drawPiece(point: Point, player: Player, isKing:boolean, translation?: Point) {
+        this.spritesPromise.then(img =>  {
+            let sourceX = isKing ? (2 * this.spriteSize) : 0;
+            if (player == Player.One) {
+                sourceX += this.spriteSize;
+            }
+            
+            // Use to adjust sprite image position. Should really fix sprite.
+            let spriteAdjust = new Point(2, 2);
+            let drawPoint = point.add(spriteAdjust);
+            if (translation) {
+                drawPoint = drawPoint.subtract(translation);
+            }
+            
+            this.ctx.drawImage(img, sourceX, 0, this.spriteSize, this.spriteSize, 
+                drawPoint.x, drawPoint.y, this.squareSize, this.squareSize); 
+        });
     }
 
     private drawPieces(bitboard: Bitboard) {
         // Holds delayed draw operation for drag target.
         let drawDragTarget: () => void;
-        let translation:Point = {x: this.squareSize * 0.5, y: this.squareSize * 0.5};
-        
-        for(let i = 0; i < SQUARE_COUNT; i++) {
-            let fillColor:string;
-            let strokeColor:string;
-            
-            switch (bitboard.getPlayerAtSquare(i)) {
-                case Player.One:
-                    fillColor = 'white';
-                    strokeColor = 'black';
-                    break;
-                case Player.Two:
-                    fillColor = 'black';
-                    strokeColor = 'white';
-                    break;
-                default:
-                    continue;
+
+        for (let i = 0; i < SQUARE_COUNT; i++) {
+            let player = bitboard.getPlayerAtSquare(i);
+            if (player == Player.None) {
+                continue;
             }
             
-            if (bitboard.isKing(i)) {
-                strokeColor = 'red';
-            }
-            
+            let isKing = bitboard.isKing(i);
             // Draw drag target later.
             if (i == this.dragTarget) {
-                let dragTranslation = subtract(translation, this.dragTranslation);
                 drawDragTarget = this.drawPiece.bind(
-                    this, this.dragPosition, fillColor, strokeColor, dragTranslation);
+                    this, this.dragPosition, player, isKing, this.dragTranslation);
             }
             else {
                 let position = toPosition(i, this.squareSize);
-                this.drawPiece(position, fillColor, strokeColor, translation);
+                this.drawPiece(position, player, isKing);
             }
         }
-        
+
         // Draw drag target.
         if (drawDragTarget) {
             drawDragTarget();
@@ -219,11 +228,11 @@ class CheckersBoardController {
     }
 
     private drawSquare(row: number, column: number) {
-        let color = row % 2 == column % 2 ? 'white': 'black' 
+        let color = (row % 2 == column % 2) ? 'white' : 'black';
         let x = row * this.squareSize;
         let y = column * this.squareSize;
 
-        this.ctx.fillStyle =  color;
+        this.ctx.fillStyle = color;
         this.ctx.fillRect(x, y, this.squareSize, this.squareSize);
     }
 
@@ -236,11 +245,19 @@ class CheckersBoardController {
     }
 }
 
+/**
+ * Checkers board directive. 
+ * Atributes: 
+ *  - spritesImageUrl: The url link to load for pieces sprite image. Expected to be a horizontal stripe.
+ *  - spritesSize: The size of each piece in the sprites image.
+ */
 export const CheckersBoard: ng.IComponentOptions = {
     template: `<canvas>
         <span id="no_html5">Your Browser Does Not Support HTML5's Canvas Feature.</span>
     </canvas>`,
     bindings: {
+        spritesImageUrl: '@',
+        spriteSize: '<'
     },
     controller: CheckersBoardController
 };

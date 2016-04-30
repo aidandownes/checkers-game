@@ -119,4 +119,12 @@ export class List<T> {
             current = current.next;
         }
     }
+    
+    /**
+     * Gets the size of the list.
+     * @return The size of the list.
+     */
+    getSize(): number {
+        return this.size;
+    }
 }
