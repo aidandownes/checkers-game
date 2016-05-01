@@ -76,3 +76,18 @@ md-sidenav {
         }
     }
 }
+
+canvas {
+    &.cb-dragging {
+        cursor: grabbing;
+        cursor: -webkit-grabbing;
+        cursor: -moz-grabbing;
+    }
+    
+    &.cb-drag {
+        cursor: move;
+        cursor: grab;
+        cursor: -webkit-grab;
+        cursor: -moz-grab;
+    }
+}

@@ -15,16 +15,18 @@ export interface ComputeOptions {
 
 export class Checkers {
     private boards: Bitboard[];
-    private startTime: number;
-    private searchResult: SearchResult;
-    private computeOptions: ComputeOptions;
-    private lastMove: CheckersMove;
+    startTime: number;
+    searchResult: SearchResult;
+    computeOptions: ComputeOptions;
+    lastMove: CheckersMove;
+    computerPlayer = Player.Two;
+    humanPlayer = Player.One;
 
     constructor(private $timeout: ng.ITimeoutService, private uctSearchService: UctSearchService) {
-        this.setComputeOptions({
+        this.computeOptions = {
             maxIterations: DEFAULT_MAX_ITERATIONS,
             maxTime: DEFAULT_MAX_TIME_MS
-        });
+        };
         this.reset();
     }
 
@@ -35,45 +37,29 @@ export class Checkers {
         this.searchResult = null;
     }
 
-    setComputeOptions(computeOptions: ComputeOptions) {
-        this.computeOptions = computeOptions;
+    get currentPlayer(): Player {
+        return this.currentBoard.player;
     }
 
-    getComputeOptions(): ComputeOptions {
-        return this.computeOptions;
+    get currentBoard(): Bitboard {
+        return this.boards[this.boards.length - 1];
     }
-
-    getComputerPlayer() {
-        return Player.Two;
+    
+    get playablePieces(): number[] {
+        if (this.currentPlayer != this.humanPlayer) {
+            return [];
+        }
+        
+        return this.currentBoard.getMoves().map(m => m.source);
     }
-
-    getHumanPlayer() {
-        return Player.One;
-    }
-
+    
     getOpponent(player: Player): Player {
         if (player == Player.None) return Player.None;
         return player == Player.One ? Player.Two : Player.One;
     }
 
-    getCurrentPlayer(): Player {
-        return this.getCurrentBoard().player;
-    }
-
-    getCurrentBoard(): Bitboard {
-        return this.boards[this.boards.length - 1];
-    }
-
-    getStartTime(): number {
-        return this.startTime;
-    }
-
-    getSearchResult(): SearchResult {
-        return this.searchResult;
-    }
-
     tryMove(source: number, destination: number): boolean {
-        let currentBoard = this.getCurrentBoard();
+        let currentBoard = this.currentBoard;
         let move = { source: source, destination: destination, player: currentBoard.player };
         let {success, board} = currentBoard.tryMove(move);
 
@@ -81,8 +67,7 @@ export class Checkers {
         if (success) {
             this.boards.push(board);
             this.lastMove = move;
-            console.log(`Last move is (${move.source} => ${move.destination})`);
-            if (board.player == this.getComputerPlayer()) {
+            if (board.player == this.computerPlayer) {
                 this.$timeout(this.doComputerPlayerMove.bind(this), 500);
             }
             return true;
@@ -91,18 +76,14 @@ export class Checkers {
         }
     }
 
-    doComputerPlayerMove() {
-        this.searchResult = this.uctSearchService.search(this.getCurrentBoard(),
+    private doComputerPlayerMove() {
+        this.searchResult = this.uctSearchService.search(this.currentBoard,
             this.computeOptions.maxIterations,
             this.computeOptions.maxTime);
         if (this.searchResult.move) {
             let move = <CheckersMove>this.searchResult.move;
             this.tryMove(move.source, move.destination);
         }
-    }
-    
-    getLastMove(): CheckersMove {
-        return this.lastMove;
     }
 }
 

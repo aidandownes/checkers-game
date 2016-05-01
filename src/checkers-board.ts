@@ -5,29 +5,19 @@ import {Player} from './game-model';
 const ROW_LENGTH = 8;
 const COLUMN_LENGTH = 8;
 
+const DraggingClass = 'cb-dragging';
+const DragClass = 'cb-drag';
+
 class Point {
-    private x_: number;
-    private y_: number;
-    
-    constructor(x: number, y: number) {
-        this.x_ = x;
-        this.y_ = y;
+    constructor(public x: number, public y: number) {
     }
-    
-    get x() : number {
-        return this.x_;
+
+    add(other: Point): Point {
+        return new Point(this.x + other.x, this.y + other.y);
     }
-    
-    get y() : number {
-        return this.y_;
-    }
-    
-    add(other:Point): Point {
-        return new Point(this.x_ + other.x_, this.y_ + other.y_);
-    }
-    
-    subtract(other:Point): Point {
-        return new Point(this.x_ - other.x_, this.y_ - other.y_);
+
+    subtract(other: Point): Point {
+        return new Point(this.x - other.x, this.y - other.y);
     }
 }
 
@@ -64,6 +54,7 @@ class CheckersBoardController {
     ctx: CanvasRenderingContext2D;
     canvas: ng.IAugmentedJQuery;
     canvasElement: HTMLCanvasElement;
+    isDragging: boolean;
     dragTarget: number;
     dragPosition: Point;
     dragTranslation: Point;
@@ -73,6 +64,7 @@ class CheckersBoardController {
     spritesPromise: ng.IPromise<HTMLImageElement>;
     spritesImageUrl: string;
     spriteSize: number;
+    playableSquares: number[];
 
     constructor(private checkers: Checkers, private $element: ng.IAugmentedJQuery,
         private $window: ng.IWindowService, private $timeout: ng.ITimeoutService,
@@ -86,13 +78,19 @@ class CheckersBoardController {
 
         // Add event listeners
         this.canvas.on('mousedown', this.handleMouseDown.bind(this));
+        this.canvas.on('mousemove', this.handleMouseMove.bind(this));
 
         $scope.$watch(() => this.$element.width(), this.resize.bind(this));
-        $scope.$watch(() => this.checkers.getCurrentBoard(), () => this.render());
+        $scope.$watch(() => this.checkers.currentBoard, this.onBoardUpdated.bind(this));
     }
 
     $postLink() {
         this.spritesPromise = this.loadImage(this.spritesImageUrl);
+        this.render();
+    }
+
+    private onBoardUpdated(board: Bitboard) {
+        this.playableSquares = this.checkers.playablePieces;
         this.render();
     }
 
@@ -110,7 +108,7 @@ class CheckersBoardController {
         this.spritesPromise.then(() => {
             this.$timeout(() => {
                 this.drawBoard();
-                this.drawPieces(this.checkers.getCurrentBoard());
+                this.drawPieces(this.checkers.currentBoard);
             });
         });
     }
@@ -120,11 +118,11 @@ class CheckersBoardController {
         this.width = this.$element.width();
         this.height = this.$element.height();
         this.squareSize = this.width / ROW_LENGTH;
-        
+
         // Resize the canvas;
         this.canvasElement.width = this.width;
         this.canvasElement.height = this.width;
-        
+
         // Redraw board.
         this.render();
     }
@@ -132,25 +130,36 @@ class CheckersBoardController {
     private handleMouseDown(ev: JQueryEventObject) {
         let p = this.getMousePoint(ev);
         let sourceSquare = toSquare(p, this.squareSize);
-        let player = this.checkers.getCurrentBoard().getPlayerAtSquare(sourceSquare);
+        let player = this.checkers.currentBoard.getPlayerAtSquare(sourceSquare);
 
-        if (player == this.checkers.getCurrentBoard().player) {
+        if (player == this.checkers.currentBoard.player) {
             let squarePosition = toPosition(sourceSquare, this.squareSize);
 
+            this.isDragging = true;
             this.dragTarget = sourceSquare;
             this.dragPosition = p;
             this.dragTranslation = p.subtract(squarePosition);
 
-            this.canvas.on('mousemove', this.handleMouseMove.bind(this));
             this.canvas.on('mouseup', this.handleMouseUp.bind(this));
+            this.canvas.addClass(DraggingClass);
+            this.canvas.removeClass(DragClass);
             this.render();
         }
     }
 
     private handleMouseMove(ev: JQueryEventObject) {
         let p = this.getMousePoint(ev);
-        this.dragPosition = p;
-        this.render();
+        if (this.isDragging) {
+            this.dragPosition = p;
+            this.render();
+        } else {
+            let sourceSquare = toSquare(p, this.squareSize);
+            if (this.playableSquares.indexOf(sourceSquare) < 0) {
+                this.canvas.removeClass(DragClass);
+            } else {
+                this.canvas.addClass(DragClass);
+            }
+        }
     }
 
     private handleMouseUp(ev: JQueryEventObject) {
@@ -163,12 +172,15 @@ class CheckersBoardController {
         }
 
         // Reset dragTarget information.
+        this.isDragging = false;
         this.dragTarget = -1;
         this.dragPosition = <Point>null;
 
         // Remove handlers for drag target.
-        this.canvas.off('mousemove');
         this.canvas.off('mouseup');
+
+        // Remove drag css class
+        this.canvas.removeClass(DraggingClass);
 
         // Redraw board.
         this.render();
@@ -180,22 +192,22 @@ class CheckersBoardController {
         return new Point(ev.clientX - rect.left, ev.clientY - rect.top);
     }
 
-    private drawPiece(point: Point, player: Player, isKing:boolean, translation?: Point) {
-        this.spritesPromise.then(img =>  {
+    private drawPiece(point: Point, player: Player, isKing: boolean, translation?: Point) {
+        this.spritesPromise.then(img => {
             let sourceX = isKing ? (2 * this.spriteSize) : 0;
             if (player == Player.One) {
                 sourceX += this.spriteSize;
             }
-            
+
             // Use to adjust sprite image position. Should really fix sprite.
             let spriteAdjust = new Point(2, 2);
             let drawPoint = point.add(spriteAdjust);
             if (translation) {
                 drawPoint = drawPoint.subtract(translation);
             }
-            
-            this.ctx.drawImage(img, sourceX, 0, this.spriteSize, this.spriteSize, 
-                drawPoint.x, drawPoint.y, this.squareSize, this.squareSize); 
+
+            this.ctx.drawImage(img, sourceX, 0, this.spriteSize, this.spriteSize,
+                drawPoint.x, drawPoint.y, this.squareSize, this.squareSize);
         });
     }
 
@@ -208,7 +220,7 @@ class CheckersBoardController {
             if (player == Player.None) {
                 continue;
             }
-            
+
             let isKing = bitboard.isKing(i);
             // Draw drag target later.
             if (i == this.dragTarget) {
@@ -233,27 +245,27 @@ class CheckersBoardController {
         this.ctx.fillStyle = '#000';
         this.ctx.fillRect(position.x, position.y, this.squareSize, this.squareSize);
     }
-    
-    private highlightSquare(square:number) {
+
+    private highlightSquare(square: number) {
         let position = toPosition(square, this.squareSize);
 
         this.ctx.strokeStyle = '#FF5722';
         this.ctx.lineWidth = 2;
         this.ctx.strokeRect(position.x, position.y, this.squareSize, this.squareSize);
-        
+
     }
 
     private drawBoard() {
         // Paint board white.
         this.ctx.fillStyle = '#FFF';
         this.ctx.fillRect(0, 0, this.canvasElement.width, this.canvasElement.height);
-       
+
         // Paint black squares.         
         for (let i = 0; i < SQUARE_COUNT; i++) {
             this.drawSquare(i);
         }
-        
-        let lastMove = this.checkers.getLastMove();
+
+        let lastMove = this.checkers.lastMove;
         if (lastMove) {
             this.highlightSquare(lastMove.source);
             this.highlightSquare(lastMove.destination);

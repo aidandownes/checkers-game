@@ -23,9 +23,9 @@ class AppController {
         this.checkers = checkers;
         this.$mdSidenav = $mdSidenav;
         this.$scope = $scope;
-        this.computeOptions = checkers.getComputeOptions();
+        this.computeOptions = checkers.computeOptions;
         $scope.$watchCollection(() => this.computeOptions, (newValue, oldValue) => {
-            checkers.setComputeOptions(newValue);
+            checkers.computeOptions = newValue;
             this.isSettingsDirty = !!oldValue;
         });
         $scope.$watch(() => this.isSidenavOpen, (newValue, oldValue) => {

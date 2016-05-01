@@ -36,10 +36,10 @@ class AppController {
     constructor(private checkers: Checkers, 
             private $mdSidenav: ng.material.ISidenavService,
             private $scope: ng.IScope) {
-        this.computeOptions = checkers.getComputeOptions();
+        this.computeOptions = checkers.computeOptions;
         
         $scope.$watchCollection(() => this.computeOptions, (newValue, oldValue) => {
-            checkers.setComputeOptions(newValue);
+            checkers.computeOptions = newValue;
             this.isSettingsDirty = !!oldValue;
         });
         

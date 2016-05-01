@@ -6,11 +6,11 @@ class GameStatsController {
         this.$interval = $interval;
         this.$interval(() => {
             let endTime = new Date();
-            this.playTime = (endTime.getTime() - this.checkers.getStartTime()) / 1000;
+            this.playTime = (endTime.getTime() - this.checkers.startTime) / 1000;
         }, 1000);
     }
     getCurrentPlayer() {
-        switch (this.checkers.getCurrentPlayer()) {
+        switch (this.checkers.currentPlayer) {
             case game_model_1.Player.One:
                 return 'White';
             case game_model_1.Player.Two:

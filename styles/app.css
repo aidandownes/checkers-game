@@ -37,3 +37,14 @@ dl.cb-kv-list {
 
 md-sidenav md-content h3 {
   margin: 8px; }
+
+canvas.cb-dragging {
+  cursor: grabbing;
+  cursor: -webkit-grabbing;
+  cursor: -moz-grabbing; }
+
+canvas.cb-drag {
+  cursor: move;
+  cursor: grab;
+  cursor: -webkit-grab;
+  cursor: -moz-grab; }

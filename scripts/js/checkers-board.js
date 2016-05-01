@@ -3,22 +3,18 @@ const checkers_bitboard_1 = require('./checkers-bitboard');
 const game_model_1 = require('./game-model');
 const ROW_LENGTH = 8;
 const COLUMN_LENGTH = 8;
+const DraggingClass = 'cb-dragging';
+const DragClass = 'cb-drag';
 class Point {
     constructor(x, y) {
-        this.x_ = x;
-        this.y_ = y;
-    }
-    get x() {
-        return this.x_;
-    }
-    get y() {
-        return this.y_;
+        this.x = x;
+        this.y = y;
     }
     add(other) {
-        return new Point(this.x_ + other.x_, this.y_ + other.y_);
+        return new Point(this.x + other.x, this.y + other.y);
     }
     subtract(other) {
-        return new Point(this.x_ - other.x_, this.y_ - other.y_);
+        return new Point(this.x - other.x, this.y - other.y);
     }
 }
 const BoardSquareArray = (function () {
@@ -58,11 +54,16 @@ class CheckersBoardController {
         this.height = this.$element.height();
         this.squareSize = this.width / ROW_LENGTH;
         this.canvas.on('mousedown', this.handleMouseDown.bind(this));
+        this.canvas.on('mousemove', this.handleMouseMove.bind(this));
         $scope.$watch(() => this.$element.width(), this.resize.bind(this));
-        $scope.$watch(() => this.checkers.getCurrentBoard(), () => this.render());
+        $scope.$watch(() => this.checkers.currentBoard, this.onBoardUpdated.bind(this));
     }
     $postLink() {
         this.spritesPromise = this.loadImage(this.spritesImageUrl);
+        this.render();
+    }
+    onBoardUpdated(board) {
+        this.playableSquares = this.checkers.playablePieces;
         this.render();
     }
     loadImage(src) {
@@ -78,7 +79,7 @@ class CheckersBoardController {
         this.spritesPromise.then(() => {
             this.$timeout(() => {
                 this.drawBoard();
-                this.drawPieces(this.checkers.getCurrentBoard());
+                this.drawPieces(this.checkers.currentBoard);
             });
         });
     }
@@ -93,21 +94,34 @@ class CheckersBoardController {
     handleMouseDown(ev) {
         let p = this.getMousePoint(ev);
         let sourceSquare = toSquare(p, this.squareSize);
-        let player = this.checkers.getCurrentBoard().getPlayerAtSquare(sourceSquare);
-        if (player == this.checkers.getCurrentBoard().player) {
+        let player = this.checkers.currentBoard.getPlayerAtSquare(sourceSquare);
+        if (player == this.checkers.currentBoard.player) {
             let squarePosition = toPosition(sourceSquare, this.squareSize);
+            this.isDragging = true;
             this.dragTarget = sourceSquare;
             this.dragPosition = p;
             this.dragTranslation = p.subtract(squarePosition);
-            this.canvas.on('mousemove', this.handleMouseMove.bind(this));
             this.canvas.on('mouseup', this.handleMouseUp.bind(this));
+            this.canvas.addClass(DraggingClass);
+            this.canvas.removeClass(DragClass);
             this.render();
         }
     }
     handleMouseMove(ev) {
         let p = this.getMousePoint(ev);
-        this.dragPosition = p;
-        this.render();
+        if (this.isDragging) {
+            this.dragPosition = p;
+            this.render();
+        }
+        else {
+            let sourceSquare = toSquare(p, this.squareSize);
+            if (this.playableSquares.indexOf(sourceSquare) < 0) {
+                this.canvas.removeClass(DragClass);
+            }
+            else {
+                this.canvas.addClass(DragClass);
+            }
+        }
     }
     handleMouseUp(ev) {
         let p = this.getMousePoint(ev);
@@ -115,10 +129,11 @@ class CheckersBoardController {
         if (destinationSquare >= 0) {
             this.checkers.tryMove(this.dragTarget, destinationSquare);
         }
+        this.isDragging = false;
         this.dragTarget = -1;
         this.dragPosition = null;
-        this.canvas.off('mousemove');
         this.canvas.off('mouseup');
+        this.canvas.removeClass(DraggingClass);
         this.render();
     }
     getMousePoint(ev) {
@@ -176,7 +191,7 @@ class CheckersBoardController {
         for (let i = 0; i < checkers_bitboard_1.SQUARE_COUNT; i++) {
             this.drawSquare(i);
         }
-        let lastMove = this.checkers.getLastMove();
+        let lastMove = this.checkers.lastMove;
         if (lastMove) {
             this.highlightSquare(lastMove.source);
             this.highlightSquare(lastMove.destination);

@@ -6,7 +6,7 @@ class MctsStatsController {
     searchResult: SearchResult;
     
     constructor(private checkers: Checkers, private $scope: ng.IScope) {
-        $scope.$watch(() => checkers.getSearchResult(), (searchResult) => {
+        $scope.$watch(() => checkers.searchResult, (searchResult) => {
             this.searchResult = searchResult;
         });
     }

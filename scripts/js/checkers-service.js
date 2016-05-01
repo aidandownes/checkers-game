@@ -9,10 +9,12 @@ class Checkers {
     constructor($timeout, uctSearchService) {
         this.$timeout = $timeout;
         this.uctSearchService = uctSearchService;
-        this.setComputeOptions({
+        this.computerPlayer = game_model_1.Player.Two;
+        this.humanPlayer = game_model_1.Player.One;
+        this.computeOptions = {
             maxIterations: DEFAULT_MAX_ITERATIONS,
             maxTime: DEFAULT_MAX_TIME_MS
-        });
+        };
         this.reset();
     }
     reset() {
@@ -21,44 +23,31 @@ class Checkers {
         this.startTime = (new Date()).getTime();
         this.searchResult = null;
     }
-    setComputeOptions(computeOptions) {
-        this.computeOptions = computeOptions;
+    get currentPlayer() {
+        return this.currentBoard.player;
     }
-    getComputeOptions() {
-        return this.computeOptions;
+    get currentBoard() {
+        return this.boards[this.boards.length - 1];
     }
-    getComputerPlayer() {
-        return game_model_1.Player.Two;
-    }
-    getHumanPlayer() {
-        return game_model_1.Player.One;
+    get playablePieces() {
+        if (this.currentPlayer != this.humanPlayer) {
+            return [];
+        }
+        return this.currentBoard.getMoves().map(m => m.source);
     }
     getOpponent(player) {
         if (player == game_model_1.Player.None)
             return game_model_1.Player.None;
         return player == game_model_1.Player.One ? game_model_1.Player.Two : game_model_1.Player.One;
     }
-    getCurrentPlayer() {
-        return this.getCurrentBoard().player;
-    }
-    getCurrentBoard() {
-        return this.boards[this.boards.length - 1];
-    }
-    getStartTime() {
-        return this.startTime;
-    }
-    getSearchResult() {
-        return this.searchResult;
-    }
     tryMove(source, destination) {
-        let currentBoard = this.getCurrentBoard();
+        let currentBoard = this.currentBoard;
         let move = { source: source, destination: destination, player: currentBoard.player };
         let { success, board } = currentBoard.tryMove(move);
         if (success) {
             this.boards.push(board);
             this.lastMove = move;
-            console.log(`Last move is (${move.source} => ${move.destination})`);
-            if (board.player == this.getComputerPlayer()) {
+            if (board.player == this.computerPlayer) {
                 this.$timeout(this.doComputerPlayerMove.bind(this), 500);
             }
             return true;
@@ -68,14 +57,11 @@ class Checkers {
         }
     }
     doComputerPlayerMove() {
-        this.searchResult = this.uctSearchService.search(this.getCurrentBoard(), this.computeOptions.maxIterations, this.computeOptions.maxTime);
+        this.searchResult = this.uctSearchService.search(this.currentBoard, this.computeOptions.maxIterations, this.computeOptions.maxTime);
         if (this.searchResult.move) {
             let move = this.searchResult.move;
             this.tryMove(move.source, move.destination);
         }
-    }
-    getLastMove() {
-        return this.lastMove;
     }
 }
 exports.Checkers = Checkers;
