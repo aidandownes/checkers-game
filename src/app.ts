@@ -31,21 +31,24 @@ AppModule.config(configureThemes);
 class AppController {
     computeOptions: ComputeOptions;
     isSidenavOpen: boolean;
+    isSettingsDirty: boolean;
     
     constructor(private checkers: Checkers, 
             private $mdSidenav: ng.material.ISidenavService,
             private $scope: ng.IScope) {
         this.computeOptions = checkers.getComputeOptions();
         
-        $scope.$watchCollection(() => this.computeOptions, (options) => {
-            checkers.setComputeOptions(options);
+        $scope.$watchCollection(() => this.computeOptions, (newValue, oldValue) => {
+            checkers.setComputeOptions(newValue);
+            this.isSettingsDirty = !!oldValue;
         });
         
         $scope.$watch(() => this.isSidenavOpen, (newValue, oldValue) => {
-            if (!newValue && oldValue) {
+            if (!newValue && oldValue && this.isSettingsDirty) {
                 // Side nav was closed. Reset game.
                 this.checkers.reset();
             }
+            this.isSettingsDirty = false;
         });
     }
     

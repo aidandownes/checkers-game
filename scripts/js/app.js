@@ -24,13 +24,15 @@ class AppController {
         this.$mdSidenav = $mdSidenav;
         this.$scope = $scope;
         this.computeOptions = checkers.getComputeOptions();
-        $scope.$watchCollection(() => this.computeOptions, (options) => {
-            checkers.setComputeOptions(options);
+        $scope.$watchCollection(() => this.computeOptions, (newValue, oldValue) => {
+            checkers.setComputeOptions(newValue);
+            this.isSettingsDirty = !!oldValue;
         });
         $scope.$watch(() => this.isSidenavOpen, (newValue, oldValue) => {
-            if (!newValue && oldValue) {
+            if (!newValue && oldValue && this.isSettingsDirty) {
                 this.checkers.reset();
             }
+            this.isSettingsDirty = false;
         });
     }
     toggleMenu() {

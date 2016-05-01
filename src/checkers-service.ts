@@ -18,6 +18,7 @@ export class Checkers {
     private startTime: number;
     private searchResult: SearchResult;
     private computeOptions: ComputeOptions;
+    private lastMove: CheckersMove;
 
     constructor(private $timeout: ng.ITimeoutService, private uctSearchService: UctSearchService) {
         this.setComputeOptions({
@@ -73,11 +74,14 @@ export class Checkers {
 
     tryMove(source: number, destination: number): boolean {
         let currentBoard = this.getCurrentBoard();
-        let {success, board} = currentBoard.tryMove({ source: source, destination: destination, player: currentBoard.player });
+        let move = { source: source, destination: destination, player: currentBoard.player };
+        let {success, board} = currentBoard.tryMove(move);
 
         // Move successful
         if (success) {
             this.boards.push(board);
+            this.lastMove = move;
+            console.log(`Last move is (${move.source} => ${move.destination})`);
             if (board.player == this.getComputerPlayer()) {
                 this.$timeout(this.doComputerPlayerMove.bind(this), 500);
             }
@@ -95,6 +99,10 @@ export class Checkers {
             let move = <CheckersMove>this.searchResult.move;
             this.tryMove(move.source, move.destination);
         }
+    }
+    
+    getLastMove(): CheckersMove {
+        return this.lastMove;
     }
 }
 

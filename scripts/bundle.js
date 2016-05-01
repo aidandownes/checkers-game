@@ -25,13 +25,15 @@ class AppController {
         this.$mdSidenav = $mdSidenav;
         this.$scope = $scope;
         this.computeOptions = checkers.getComputeOptions();
-        $scope.$watchCollection(() => this.computeOptions, (options) => {
-            checkers.setComputeOptions(options);
+        $scope.$watchCollection(() => this.computeOptions, (newValue, oldValue) => {
+            checkers.setComputeOptions(newValue);
+            this.isSettingsDirty = !!oldValue;
         });
         $scope.$watch(() => this.isSidenavOpen, (newValue, oldValue) => {
-            if (!newValue && oldValue) {
+            if (!newValue && oldValue && this.isSettingsDirty) {
                 this.checkers.reset();
             }
+            this.isSettingsDirty = false;
         });
     }
     toggleMenu() {
@@ -655,18 +657,27 @@ class CheckersBoardController {
             drawDragTarget();
         }
     }
-    drawSquare(row, column) {
-        let color = (row % 2 == column % 2) ? 'white' : 'black';
-        let x = row * this.squareSize;
-        let y = column * this.squareSize;
-        this.ctx.fillStyle = color;
-        this.ctx.fillRect(x, y, this.squareSize, this.squareSize);
+    drawSquare(square) {
+        let position = toPosition(square, this.squareSize);
+        this.ctx.fillStyle = '#000';
+        this.ctx.fillRect(position.x, position.y, this.squareSize, this.squareSize);
+    }
+    highlightSquare(square) {
+        let position = toPosition(square, this.squareSize);
+        this.ctx.strokeStyle = '#FF5722';
+        this.ctx.lineWidth = 2;
+        this.ctx.strokeRect(position.x, position.y, this.squareSize, this.squareSize);
     }
     drawBoard() {
-        for (let i = 0; i < ROW_LENGTH; i++) {
-            for (let j = 0; j < COLUMN_LENGTH; j++) {
-                this.drawSquare(i, j);
-            }
+        this.ctx.fillStyle = '#FFF';
+        this.ctx.fillRect(0, 0, this.canvasElement.width, this.canvasElement.height);
+        for (let i = 0; i < checkers_bitboard_1.SQUARE_COUNT; i++) {
+            this.drawSquare(i);
+        }
+        let lastMove = this.checkers.getLastMove();
+        if (lastMove) {
+            this.highlightSquare(lastMove.source);
+            this.highlightSquare(lastMove.destination);
         }
     }
 }
@@ -899,9 +910,12 @@ class Checkers {
     }
     tryMove(source, destination) {
         let currentBoard = this.getCurrentBoard();
-        let { success, board } = currentBoard.tryMove({ source: source, destination: destination, player: currentBoard.player });
+        let move = { source: source, destination: destination, player: currentBoard.player };
+        let { success, board } = currentBoard.tryMove(move);
         if (success) {
             this.boards.push(board);
+            this.lastMove = move;
+            console.log(`Last move is (${move.source} => ${move.destination})`);
             if (board.player == this.getComputerPlayer()) {
                 this.$timeout(this.doComputerPlayerMove.bind(this), 500);
             }
@@ -917,6 +931,9 @@ class Checkers {
             let move = this.searchResult.move;
             this.tryMove(move.source, move.destination);
         }
+    }
+    getLastMove() {
+        return this.lastMove;
     }
 }
 exports.Checkers = Checkers;

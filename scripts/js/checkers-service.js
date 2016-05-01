@@ -52,9 +52,12 @@ class Checkers {
     }
     tryMove(source, destination) {
         let currentBoard = this.getCurrentBoard();
-        let { success, board } = currentBoard.tryMove({ source: source, destination: destination, player: currentBoard.player });
+        let move = { source: source, destination: destination, player: currentBoard.player };
+        let { success, board } = currentBoard.tryMove(move);
         if (success) {
             this.boards.push(board);
+            this.lastMove = move;
+            console.log(`Last move is (${move.source} => ${move.destination})`);
             if (board.player == this.getComputerPlayer()) {
                 this.$timeout(this.doComputerPlayerMove.bind(this), 500);
             }
@@ -70,6 +73,9 @@ class Checkers {
             let move = this.searchResult.move;
             this.tryMove(move.source, move.destination);
         }
+    }
+    getLastMove() {
+        return this.lastMove;
     }
 }
 exports.Checkers = Checkers;

@@ -159,18 +159,27 @@ class CheckersBoardController {
             drawDragTarget();
         }
     }
-    drawSquare(row, column) {
-        let color = (row % 2 == column % 2) ? 'white' : 'black';
-        let x = row * this.squareSize;
-        let y = column * this.squareSize;
-        this.ctx.fillStyle = color;
-        this.ctx.fillRect(x, y, this.squareSize, this.squareSize);
+    drawSquare(square) {
+        let position = toPosition(square, this.squareSize);
+        this.ctx.fillStyle = '#000';
+        this.ctx.fillRect(position.x, position.y, this.squareSize, this.squareSize);
+    }
+    highlightSquare(square) {
+        let position = toPosition(square, this.squareSize);
+        this.ctx.strokeStyle = '#FF5722';
+        this.ctx.lineWidth = 2;
+        this.ctx.strokeRect(position.x, position.y, this.squareSize, this.squareSize);
     }
     drawBoard() {
-        for (let i = 0; i < ROW_LENGTH; i++) {
-            for (let j = 0; j < COLUMN_LENGTH; j++) {
-                this.drawSquare(i, j);
-            }
+        this.ctx.fillStyle = '#FFF';
+        this.ctx.fillRect(0, 0, this.canvasElement.width, this.canvasElement.height);
+        for (let i = 0; i < checkers_bitboard_1.SQUARE_COUNT; i++) {
+            this.drawSquare(i);
+        }
+        let lastMove = this.checkers.getLastMove();
+        if (lastMove) {
+            this.highlightSquare(lastMove.source);
+            this.highlightSquare(lastMove.destination);
         }
     }
 }
