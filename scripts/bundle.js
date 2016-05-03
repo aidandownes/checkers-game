@@ -548,9 +548,6 @@ class CheckersBoardController {
         this.canvasElement = $element[0].querySelector('canvas');
         this.canvas = angular.element(this.canvasElement);
         this.ctx = this.canvasElement.getContext('2d');
-        this.width = this.$element.width();
-        this.height = this.$element.height();
-        this.squareSize = this.width / ROW_LENGTH;
         this.canvas.on('mousedown', this.handleMouseDown.bind(this));
         this.canvas.on('mousemove', this.handleMouseMove.bind(this));
         $scope.$watch(() => this.$element.width(), this.resize.bind(this));
@@ -575,18 +572,22 @@ class CheckersBoardController {
     }
     render() {
         this.spritesPromise.then(() => {
-            this.$timeout(() => {
-                this.drawBoard();
-                this.drawPieces(this.checkers.currentBoard);
-            });
+            this.drawBoard();
+            this.drawPieces(this.checkers.currentBoard);
         });
     }
     resize() {
-        this.width = this.$element.width();
-        this.height = this.$element.height();
-        this.squareSize = this.width / ROW_LENGTH;
-        this.canvasElement.width = this.width;
-        this.canvasElement.height = this.width;
+        const width = this.$element.width();
+        const height = this.$element.height();
+        if (width > height) {
+            this.size = height;
+        }
+        else {
+            this.size = width;
+        }
+        this.squareSize = this.size / ROW_LENGTH;
+        this.canvasElement.width = this.size;
+        this.canvasElement.height = this.size;
         this.render();
     }
     handleMouseDown(ev) {

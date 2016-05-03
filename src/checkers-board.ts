@@ -59,8 +59,7 @@ class CheckersBoardController {
     dragPosition: Point;
     dragTranslation: Point;
     squareSize: number;
-    width: number;
-    height: number;
+    size: number;
     spritesPromise: ng.IPromise<HTMLImageElement>;
     spritesImageUrl: string;
     spriteSize: number;
@@ -72,9 +71,6 @@ class CheckersBoardController {
         this.canvasElement = <HTMLCanvasElement>$element[0].querySelector('canvas');
         this.canvas = angular.element(this.canvasElement);
         this.ctx = this.canvasElement.getContext('2d');
-        this.width = this.$element.width();
-        this.height = this.$element.height();
-        this.squareSize = this.width / ROW_LENGTH;
 
         // Add event listeners
         this.canvas.on('mousedown', this.handleMouseDown.bind(this));
@@ -106,22 +102,26 @@ class CheckersBoardController {
 
     private render() {
         this.spritesPromise.then(() => {
-            this.$timeout(() => {
-                this.drawBoard();
-                this.drawPieces(this.checkers.currentBoard);
-            });
+            this.drawBoard();
+            this.drawPieces(this.checkers.currentBoard);
         });
     }
 
     private resize() {
-        // Update the board's size vars;
-        this.width = this.$element.width();
-        this.height = this.$element.height();
-        this.squareSize = this.width / ROW_LENGTH;
+        const width = this.$element.width();
+        const height = this.$element.height();
+
+        if (width > height) {
+            this.size = height;
+        } else {
+            this.size = width;
+        }
+
+        this.squareSize = this.size / ROW_LENGTH;
 
         // Resize the canvas;
-        this.canvasElement.width = this.width;
-        this.canvasElement.height = this.width;
+        this.canvasElement.width = this.size;
+        this.canvasElement.height = this.size;
 
         // Redraw board.
         this.render();

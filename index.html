@@ -49,32 +49,28 @@
                     </md-slider-container>
                 </md-content>
             </md-sidenav>
-            <md-content>
-                <div layout="row" layout-xs="column">
-                    <div layout="column">
-                        <md-card id="checkers-board-card" md-theme="card-default">
-                            <md-card-title>
-                                <md-card-title-text>
-                                    <span class="md-headline">Player 1 vs Player 2</span>
-                                </md-card-title-text>
-                            </md-card-title>
-                            <md-card-content layout="column" layout-align="space-between">
-                                <checkers-board sprites-image-url="images/piecesSprite.svg" sprite-size="50"></checkers-board>
+            <md-content flex>
+                <div layout-gt-xs="row" layout-xs="column" layout-fill>
+                    <div layout="column" class="cb-main-content">
+                        <md-card id="checkers-board-card" md-theme="card-default" flex>
+                            <md-card-content layout="column" layout-align="space-between" flex>
+                                <checkers-board sprites-image-url="images/piecesSprite.svg" sprite-size="50" 
+                                    flex layout layout-align="center center"></checkers-board>
                                 <md-card-actions layout="row" layout-align="end center">
                                     <md-button ng-click="appCtrl.restart()">Restart</md-button>
                                 </md-card-actions>
                             </md-card-content>
                         </md-card>
                     </div>
-                    <div layout="column">
+                    <div flex-gt-xs layout-gt-xs="row" layout-xs="column" class="cb-cards-stats">
                         <md-card md-theme="card-blue-dark" class="cb-card-stats">
                             <md-card-title>
                                 <md-card-title-text>
                                     <span class="md-headline">Game stats</span>
                                 </md-card-title-text>
                             </md-card-title>
-                            <md-card-content>
-                                <checkers-game-stats></checkers-game-stats>
+                            <md-card-content layout>
+                                <checkers-game-stats flex layout></checkers-game-stats>
                             </md-card-content>
                         </md-card>
 
@@ -84,8 +80,8 @@
                                     <span class="md-headline">Winning Probablity</span>
                                 </md-card-title-text>
                             </md-card-title>
-                            <md-card-content>
-                                <checkers-mcts-stats></checkers-mcts-stats>
+                            <md-card-content layout>
+                                <checkers-mcts-stats layout flex></checkers-mcts-stats>
                             </md-card-content>
                         </md-card>
                     </div>
