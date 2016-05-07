@@ -22,6 +22,16 @@ export class Arrays {
         }
         return max;
     }
+    
+    static findIndex<T>(arr: T[], predicate: (a:T) => boolean) {
+        for (let i = 0; i < arr.length; i++) {
+            if (predicate(arr[i])) {
+                return i;
+            }
+        }
+        
+        return -1;
+    }
 }
 
 class ListNode<T> {

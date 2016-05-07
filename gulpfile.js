@@ -11,6 +11,8 @@ var buffer = require('vinyl-buffer');
 var tsify = require('tsify');
 var through = require('through2');
 var globby = require('globby');
+var gulp = require('gulp');
+var mainBowerFiles = require('gulp-main-bower-files');
 
 gulp.task('scripts', ['typescript'], function () {
     // gulp expects tasks to return a stream, so we create one here.
@@ -69,3 +71,16 @@ gulp.task('watch', ['scripts', 'sass'], function () {
     });
 
 gulp.task('default', ['scripts', 'sass']);
+ 
+gulp.task("bower-files", function(){
+    gulpBowerFiles().pipe(gulp.dest("./scripts"));
+});
+
+var gulp = require('gulp');
+var mainBowerFiles = require('gulp-main-bower-files');
+
+gulp.task('main-bower-files', function() {
+    return gulp.src('./bower.json')
+        .pipe(mainBowerFiles())
+        .pipe(gulp.dest('./scripts'));
+});

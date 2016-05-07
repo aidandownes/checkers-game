@@ -7,7 +7,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <title>Checkers | HTML5</title>
     <link rel="stylesheet" type="text/css" href="styles/app.css">
-    <link rel="stylesheet" type="text/css" href="bower_components/angular-material/angular-material.min.css">
+    <link rel="stylesheet" type="text/css" href="scripts/angular-material/angular-material.css">
     <link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet">
 </head>
 
@@ -49,8 +49,8 @@
                     </md-slider-container>
                 </md-content>
             </md-sidenav>
-            <md-content flex>
-                <div layout-gt-xs="row" layout-xs="column" layout-fill>
+            <md-content flex layout>
+                <div layout-gt-xs="row" layout-xs="column" flex>
                     <div layout="column" class="cb-main-content">
                         <md-card id="checkers-board-card" md-theme="card-default" flex>
                             <md-card-content layout="column" layout-align="space-between" flex>
@@ -90,15 +90,15 @@
         </div>
     </div>
 
-    <script src="bower_components/jquery/dist/jquery.js"></script>
-    <script src="bower_components/angular/angular.js"></script>
+    <script src="scripts/jquery/dist/jquery.js"></script>
+    <script src="scripts/angular/angular.js"></script>
 
-    <script src="bower_components/angular-animate/angular-animate.js"></script>
-    <script src="bower_components/angular-aria/angular-aria.js"></script>
-    <script src="bower_components/angular-messages/angular-messages.js"></script>
-    <script src="bower_components/angular-material/angular-material.js"></script>
+    <script src="scripts/angular-animate/angular-animate.js"></script>
+    <script src="scripts/angular-aria/angular-aria.js"></script>
+    <script src="scripts/angular-messages/angular-messages.js"></script>
+    <script src="scripts/angular-material/angular-material.js"></script>
 
-    <script src="/scripts/bundle.js"></script>
+    <script src="scripts/bundle.js"></script>
 </body>
 
 </html>

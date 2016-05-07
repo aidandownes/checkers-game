@@ -1,12 +1,12 @@
 "use strict";
-const checkers_bitboard_1 = require('./checkers-bitboard');
-const game_model_1 = require('./game-model');
+var checkers_bitboard_1 = require('./checkers-bitboard');
+var game_model_1 = require('./game-model');
 var uct_1 = require('./uct');
 exports.UctSearchService = uct_1.UctSearchService;
-const DEFAULT_MAX_TIME_MS = 500;
-const DEFAULT_MAX_ITERATIONS = 10000;
-class Checkers {
-    constructor($timeout, uctSearchService) {
+var DEFAULT_MAX_TIME_MS = 500;
+var DEFAULT_MAX_ITERATIONS = 10000;
+var Checkers = (function () {
+    function Checkers($timeout, uctSearchService) {
         this.$timeout = $timeout;
         this.uctSearchService = uctSearchService;
         this.computerPlayer = game_model_1.Player.Two;
@@ -17,33 +17,33 @@ class Checkers {
         };
         this.reset();
     }
-    reset() {
+    Checkers.prototype.reset = function () {
         this.boards = [];
         this.boards.push(new checkers_bitboard_1.Bitboard());
         this.startTime = (new Date()).getTime();
         this.searchResult = null;
-    }
-    get currentPlayer() {
-        return this.currentBoard.player;
-    }
-    get currentBoard() {
+    };
+    Checkers.prototype.getCurrentPlayer = function () {
+        return this.getCurrentBoard().player;
+    };
+    Checkers.prototype.getCurrentBoard = function () {
         return this.boards[this.boards.length - 1];
-    }
-    get playablePieces() {
-        if (this.currentPlayer != this.humanPlayer) {
+    };
+    Checkers.prototype.getPlayablePieces = function () {
+        if (this.getCurrentPlayer() != this.humanPlayer) {
             return [];
         }
-        return this.currentBoard.getMoves().map(m => m.source);
-    }
-    getOpponent(player) {
+        return this.getCurrentBoard().getMoves().map(function (m) { return m.source; });
+    };
+    Checkers.prototype.getOpponent = function (player) {
         if (player == game_model_1.Player.None)
             return game_model_1.Player.None;
         return player == game_model_1.Player.One ? game_model_1.Player.Two : game_model_1.Player.One;
-    }
-    tryMove(source, destination) {
-        let currentBoard = this.currentBoard;
-        let move = { source: source, destination: destination, player: currentBoard.player };
-        let { success, board } = currentBoard.tryMove(move);
+    };
+    Checkers.prototype.tryMove = function (source, destination) {
+        var currentBoard = this.getCurrentBoard();
+        var move = { source: source, destination: destination, player: currentBoard.player };
+        var _a = currentBoard.tryMove(move), success = _a.success, board = _a.board;
         if (success) {
             this.boards.push(board);
             this.lastMove = move;
@@ -55,19 +55,23 @@ class Checkers {
         else {
             return false;
         }
-    }
-    doComputerPlayerMove() {
-        this.searchResult = this.uctSearchService.search(this.currentBoard, this.computeOptions.maxIterations, this.computeOptions.maxTime);
+    };
+    Checkers.prototype.doComputerPlayerMove = function () {
+        this.searchResult = this.uctSearchService.search(this.getCurrentBoard(), this.computeOptions.maxIterations, this.computeOptions.maxTime);
         if (this.searchResult.move) {
-            let move = this.searchResult.move;
+            var move = this.searchResult.move;
             this.tryMove(move.source, move.destination);
         }
-    }
-}
+    };
+    return Checkers;
+}());
 exports.Checkers = Checkers;
-class CheckersProvider {
-    $get($injector) {
-        return $injector.instantiate(Checkers);
+var CheckersProvider = (function () {
+    function CheckersProvider() {
     }
-}
+    CheckersProvider.prototype.$get = function ($injector) {
+        return $injector.instantiate(Checkers);
+    };
+    return CheckersProvider;
+}());
 exports.CheckersProvider = CheckersProvider;

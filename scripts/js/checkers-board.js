@@ -1,45 +1,48 @@
 "use strict";
-const checkers_bitboard_1 = require('./checkers-bitboard');
-const game_model_1 = require('./game-model');
-const ROW_LENGTH = 8;
-const COLUMN_LENGTH = 8;
-const DraggingClass = 'cb-dragging';
-const DragClass = 'cb-drag';
-class Point {
-    constructor(x, y) {
+var checkers_bitboard_1 = require('./checkers-bitboard');
+var game_model_1 = require('./game-model');
+var collections_1 = require('./collections');
+var ROW_LENGTH = 8;
+var COLUMN_LENGTH = 8;
+var DraggingClass = 'cb-dragging';
+var DragClass = 'cb-drag';
+var Point = (function () {
+    function Point(x, y) {
         this.x = x;
         this.y = y;
     }
-    add(other) {
+    Point.prototype.add = function (other) {
         return new Point(this.x + other.x, this.y + other.y);
-    }
-    subtract(other) {
+    };
+    Point.prototype.subtract = function (other) {
         return new Point(this.x - other.x, this.y - other.y);
-    }
-}
-const BoardSquareArray = (function () {
-    let squares = [];
-    for (let i = 0; i < ROW_LENGTH; i++) {
-        let mod2 = i % 2;
-        for (let j = 7 - mod2; j > 0 - mod2; j -= 2) {
+    };
+    return Point;
+}());
+var BoardSquareArray = (function () {
+    var squares = [];
+    for (var i = 0; i < ROW_LENGTH; i++) {
+        var mod2 = i % 2;
+        for (var j = 7 - mod2; j > 0 - mod2; j -= 2) {
             squares.push({ row: i, column: j });
         }
     }
     return squares.reverse();
 })();
 function toPosition(square, squareSize) {
-    let boardSquare = BoardSquareArray[square];
-    let x = boardSquare.column * squareSize;
-    let y = boardSquare.row * squareSize;
+    var boardSquare = BoardSquareArray[square];
+    var x = boardSquare.column * squareSize;
+    var y = boardSquare.row * squareSize;
     return new Point(x, y);
 }
 function toSquare(position, squareSize) {
     var row = Math.floor(position.y / squareSize);
     var column = Math.floor(position.x / squareSize);
-    return BoardSquareArray.findIndex(bs => bs.column == column && bs.row == row);
+    return collections_1.Arrays.findIndex(BoardSquareArray, function (bs) { return bs.column == column && bs.row == row; });
 }
-class CheckersBoardController {
-    constructor(checkers, $element, $window, $timeout, $log, $scope, $q) {
+var CheckersBoardController = (function () {
+    function CheckersBoardController(checkers, $element, $window, $timeout, $log, $scope, $q) {
+        var _this = this;
         this.checkers = checkers;
         this.$element = $element;
         this.$window = $window;
@@ -52,35 +55,36 @@ class CheckersBoardController {
         this.ctx = this.canvasElement.getContext('2d');
         this.canvas.on('mousedown', this.handleMouseDown.bind(this));
         this.canvas.on('mousemove', this.handleMouseMove.bind(this));
-        $scope.$watch(() => this.$element.width(), this.resize.bind(this));
-        $scope.$watch(() => this.checkers.currentBoard, this.onBoardUpdated.bind(this));
+        $scope.$watch(function () { return _this.$element.width(); }, this.resize.bind(this));
+        $scope.$watch(function () { return _this.checkers.getCurrentBoard(); }, this.onBoardUpdated.bind(this));
     }
-    $postLink() {
+    CheckersBoardController.prototype.$postLink = function () {
         this.spritesPromise = this.loadImage(this.spritesImageUrl);
         this.render();
-    }
-    onBoardUpdated(board) {
-        this.playableSquares = this.checkers.playablePieces;
+    };
+    CheckersBoardController.prototype.onBoardUpdated = function (board) {
+        this.playableSquares = this.checkers.getPlayablePieces();
         this.render();
-    }
-    loadImage(src) {
-        let defer = this.$q.defer();
-        let img = new Image();
+    };
+    CheckersBoardController.prototype.loadImage = function (src) {
+        var defer = this.$q.defer();
+        var img = new Image();
         img.src = src;
-        img.onload = (ev) => {
+        img.onload = function (ev) {
             defer.resolve(img);
         };
         return defer.promise;
-    }
-    render() {
-        this.spritesPromise.then(() => {
-            this.drawBoard();
-            this.drawPieces(this.checkers.currentBoard);
+    };
+    CheckersBoardController.prototype.render = function () {
+        var _this = this;
+        this.spritesPromise.then(function () {
+            _this.drawBoard();
+            _this.drawPieces(_this.checkers.getCurrentBoard());
         });
-    }
-    resize() {
-        const width = this.$element.width();
-        const height = this.$element.height();
+    };
+    CheckersBoardController.prototype.resize = function () {
+        var width = this.$element.width();
+        var height = this.$element.height();
         if (width > height) {
             this.size = height;
         }
@@ -91,13 +95,13 @@ class CheckersBoardController {
         this.canvasElement.width = this.size;
         this.canvasElement.height = this.size;
         this.render();
-    }
-    handleMouseDown(ev) {
-        let p = this.getMousePoint(ev);
-        let sourceSquare = toSquare(p, this.squareSize);
-        let player = this.checkers.currentBoard.getPlayerAtSquare(sourceSquare);
-        if (player == this.checkers.currentBoard.player) {
-            let squarePosition = toPosition(sourceSquare, this.squareSize);
+    };
+    CheckersBoardController.prototype.handleMouseDown = function (ev) {
+        var p = this.getMousePoint(ev);
+        var sourceSquare = toSquare(p, this.squareSize);
+        var player = this.checkers.getCurrentBoard().getPlayerAtSquare(sourceSquare);
+        if (player == this.checkers.getCurrentBoard().player) {
+            var squarePosition = toPosition(sourceSquare, this.squareSize);
             this.isDragging = true;
             this.dragTarget = sourceSquare;
             this.dragPosition = p;
@@ -107,15 +111,15 @@ class CheckersBoardController {
             this.canvas.removeClass(DragClass);
             this.render();
         }
-    }
-    handleMouseMove(ev) {
-        let p = this.getMousePoint(ev);
+    };
+    CheckersBoardController.prototype.handleMouseMove = function (ev) {
+        var p = this.getMousePoint(ev);
         if (this.isDragging) {
             this.dragPosition = p;
             this.render();
         }
         else {
-            let sourceSquare = toSquare(p, this.squareSize);
+            var sourceSquare = toSquare(p, this.squareSize);
             if (this.playableSquares.indexOf(sourceSquare) < 0) {
                 this.canvas.removeClass(DragClass);
             }
@@ -123,10 +127,10 @@ class CheckersBoardController {
                 this.canvas.addClass(DragClass);
             }
         }
-    }
-    handleMouseUp(ev) {
-        let p = this.getMousePoint(ev);
-        let destinationSquare = toSquare(p, this.squareSize);
+    };
+    CheckersBoardController.prototype.handleMouseUp = function (ev) {
+        var p = this.getMousePoint(ev);
+        var destinationSquare = toSquare(p, this.squareSize);
         if (destinationSquare >= 0) {
             this.checkers.tryMove(this.dragTarget, destinationSquare);
         }
@@ -136,73 +140,73 @@ class CheckersBoardController {
         this.canvas.off('mouseup');
         this.canvas.removeClass(DraggingClass);
         this.render();
-    }
-    getMousePoint(ev) {
-        let rect = this.canvas[0].getBoundingClientRect();
+    };
+    CheckersBoardController.prototype.getMousePoint = function (ev) {
+        var rect = this.canvas[0].getBoundingClientRect();
         return new Point(ev.clientX - rect.left, ev.clientY - rect.top);
-    }
-    drawPiece(point, player, isKing, translation) {
-        this.spritesPromise.then(img => {
-            let sourceX = isKing ? (2 * this.spriteSize) : 0;
+    };
+    CheckersBoardController.prototype.drawPiece = function (point, player, isKing, translation) {
+        var _this = this;
+        this.spritesPromise.then(function (img) {
+            var sourceX = isKing ? (2 * _this.spriteSize) : 0;
             if (player == game_model_1.Player.One) {
-                sourceX += this.spriteSize;
+                sourceX += _this.spriteSize;
             }
-            let spriteAdjust = new Point(2, 2);
-            let drawPoint = point.add(spriteAdjust);
+            var spriteAdjust = new Point(2, 2);
+            var drawPoint = point.add(spriteAdjust);
             if (translation) {
                 drawPoint = drawPoint.subtract(translation);
             }
-            this.ctx.drawImage(img, sourceX, 0, this.spriteSize, this.spriteSize, drawPoint.x, drawPoint.y, this.squareSize, this.squareSize);
+            _this.ctx.drawImage(img, sourceX, 0, _this.spriteSize, _this.spriteSize, drawPoint.x, drawPoint.y, _this.squareSize, _this.squareSize);
         });
-    }
-    drawPieces(bitboard) {
-        let drawDragTarget;
-        for (let i = 0; i < checkers_bitboard_1.SQUARE_COUNT; i++) {
-            let player = bitboard.getPlayerAtSquare(i);
+    };
+    CheckersBoardController.prototype.drawPieces = function (bitboard) {
+        var drawDragTarget;
+        for (var i = 0; i < checkers_bitboard_1.SQUARE_COUNT; i++) {
+            var player = bitboard.getPlayerAtSquare(i);
             if (player == game_model_1.Player.None) {
                 continue;
             }
-            let isKing = bitboard.isKing(i);
+            var isKing = bitboard.isKing(i);
             if (i == this.dragTarget) {
                 drawDragTarget = this.drawPiece.bind(this, this.dragPosition, player, isKing, this.dragTranslation);
             }
             else {
-                let position = toPosition(i, this.squareSize);
+                var position = toPosition(i, this.squareSize);
                 this.drawPiece(position, player, isKing);
             }
         }
         if (drawDragTarget) {
             drawDragTarget();
         }
-    }
-    drawSquare(square) {
-        let position = toPosition(square, this.squareSize);
+    };
+    CheckersBoardController.prototype.drawSquare = function (square) {
+        var position = toPosition(square, this.squareSize);
         this.ctx.fillStyle = '#000';
         this.ctx.fillRect(position.x, position.y, this.squareSize, this.squareSize);
-    }
-    highlightSquare(square) {
-        let position = toPosition(square, this.squareSize);
+    };
+    CheckersBoardController.prototype.highlightSquare = function (square) {
+        var position = toPosition(square, this.squareSize);
         this.ctx.strokeStyle = '#FF5722';
         this.ctx.lineWidth = 2;
         this.ctx.strokeRect(position.x, position.y, this.squareSize, this.squareSize);
-    }
-    drawBoard() {
+    };
+    CheckersBoardController.prototype.drawBoard = function () {
         this.ctx.fillStyle = '#FFF';
         this.ctx.fillRect(0, 0, this.canvasElement.width, this.canvasElement.height);
-        for (let i = 0; i < checkers_bitboard_1.SQUARE_COUNT; i++) {
+        for (var i = 0; i < checkers_bitboard_1.SQUARE_COUNT; i++) {
             this.drawSquare(i);
         }
-        let lastMove = this.checkers.lastMove;
+        var lastMove = this.checkers.lastMove;
         if (lastMove) {
             this.highlightSquare(lastMove.source);
             this.highlightSquare(lastMove.destination);
         }
-    }
-}
+    };
+    return CheckersBoardController;
+}());
 exports.CheckersBoard = {
-    template: `<canvas>
-        <span id="no_html5">Your Browser Does Not Support HTML5's Canvas Feature.</span>
-    </canvas>`,
+    template: "<canvas>\n        <span id=\"no_html5\">Your Browser Does Not Support HTML5's Canvas Feature.</span>\n    </canvas>",
     bindings: {
         spritesImageUrl: '@',
         spriteSize: '<'

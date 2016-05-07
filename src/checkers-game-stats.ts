@@ -11,7 +11,7 @@ class GameStatsController {
     }
 
     getCurrentPlayer(): string {
-        switch (this.checkers.currentPlayer) {
+        switch (this.checkers.getCurrentPlayer()) {
             case Player.One:
                 return 'White';
             case Player.Two:
@@ -60,6 +60,6 @@ export function TimeFormatFilter(): ng.IFilterNumber {
 };
 
 export const CheckersGameStats: ng.IComponentOptions = {
-    templateUrl: './templates/game-stats.ng',
+    templateUrl: 'templates/game-stats.ng',
     controller: GameStatsController
 };

@@ -1,9 +1,9 @@
 "use strict";
-const checkers_service_1 = require('./checkers-service');
-const checkers_board_1 = require('./checkers-board');
-const checkers_game_stats_1 = require('./checkers-game-stats');
-const checkers_mcts_stats_1 = require('./checkers-mcts-stats');
-const uct_1 = require('./uct');
+var checkers_service_1 = require('./checkers-service');
+var checkers_board_1 = require('./checkers-board');
+var checkers_game_stats_1 = require('./checkers-game-stats');
+var checkers_mcts_stats_1 = require('./checkers-mcts-stats');
+var uct_1 = require('./uct');
 exports.CheckersModule = angular.module('Checkers', [uct_1.UctSearchModule.name]);
 exports.CheckersModule.provider('checkers', checkers_service_1.CheckersProvider);
 exports.CheckersModule.component('checkersBoard', checkers_board_1.CheckersBoard);

@@ -30,6 +30,6 @@ class MctsStatsController {
 
 
 export const CheckersMctsStats: ng.IComponentOptions = {
-    templateUrl: './templates/mcts-stats.ng',
+    templateUrl: 'templates/mcts-stats.ng',
     controller: MctsStatsController
 };

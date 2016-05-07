@@ -1,0 +1,32 @@
+application: a-checkers-game
+version: alpha
+runtime: python27
+api_version: 1
+threadsafe: true
+
+handlers:
+- url: /
+  static_files: index.html
+  upload: index.html
+
+- url: /styles
+  static_dir: styles
+
+- url: /images
+  static_dir: images  
+
+- url: /scripts
+  static_dir: scripts
+  
+- url: /templates
+  static_dir: templates
+  
+skip_files:
+- .*\.json
+- ^node_modules/.*
+- ^bower_components/.*
+- ^src/.*
+- ^sass/.*
+- ^typings/.*
+- \.gitignore
+  

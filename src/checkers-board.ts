@@ -1,6 +1,7 @@
 import {Checkers} from './checkers-service';
 import {Bitboard, SQUARE_COUNT} from './checkers-bitboard';
 import {Player} from './game-model';
+import {Arrays} from './collections';
 
 const ROW_LENGTH = 8;
 const COLUMN_LENGTH = 8;
@@ -47,7 +48,7 @@ function toPosition(square: number, squareSize: number): Point {
 function toSquare(position: Point, squareSize: number): number {
     var row = Math.floor(position.y / squareSize);
     var column = Math.floor(position.x / squareSize);
-    return BoardSquareArray.findIndex(bs => bs.column == column && bs.row == row);
+    return Arrays.findIndex(BoardSquareArray, bs => bs.column == column && bs.row == row);
 }
 
 class CheckersBoardController {
@@ -77,7 +78,7 @@ class CheckersBoardController {
         this.canvas.on('mousemove', this.handleMouseMove.bind(this));
 
         $scope.$watch(() => this.$element.width(), this.resize.bind(this));
-        $scope.$watch(() => this.checkers.currentBoard, this.onBoardUpdated.bind(this));
+        $scope.$watch(() => this.checkers.getCurrentBoard(), this.onBoardUpdated.bind(this));
     }
 
     $postLink() {
@@ -86,7 +87,7 @@ class CheckersBoardController {
     }
 
     private onBoardUpdated(board: Bitboard) {
-        this.playableSquares = this.checkers.playablePieces;
+        this.playableSquares = this.checkers.getPlayablePieces();
         this.render();
     }
 
@@ -103,7 +104,7 @@ class CheckersBoardController {
     private render() {
         this.spritesPromise.then(() => {
             this.drawBoard();
-            this.drawPieces(this.checkers.currentBoard);
+            this.drawPieces(this.checkers.getCurrentBoard());
         });
     }
 
@@ -130,9 +131,9 @@ class CheckersBoardController {
     private handleMouseDown(ev: JQueryEventObject) {
         let p = this.getMousePoint(ev);
         let sourceSquare = toSquare(p, this.squareSize);
-        let player = this.checkers.currentBoard.getPlayerAtSquare(sourceSquare);
+        let player = this.checkers.getCurrentBoard().getPlayerAtSquare(sourceSquare);
 
-        if (player == this.checkers.currentBoard.player) {
+        if (player == this.checkers.getCurrentBoard().player) {
             let squarePosition = toPosition(sourceSquare, this.squareSize);
 
             this.isDragging = true;

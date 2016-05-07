@@ -37,20 +37,20 @@ export class Checkers {
         this.searchResult = null;
     }
 
-    get currentPlayer(): Player {
-        return this.currentBoard.player;
+    getCurrentPlayer(): Player {
+        return this.getCurrentBoard().player;
     }
 
-    get currentBoard(): Bitboard {
+    getCurrentBoard(): Bitboard {
         return this.boards[this.boards.length - 1];
     }
     
-    get playablePieces(): number[] {
-        if (this.currentPlayer != this.humanPlayer) {
+    getPlayablePieces(): number[] {
+        if (this.getCurrentPlayer() != this.humanPlayer) {
             return [];
         }
         
-        return this.currentBoard.getMoves().map(m => m.source);
+        return this.getCurrentBoard().getMoves().map(m => m.source);
     }
     
     getOpponent(player: Player): Player {
@@ -59,7 +59,7 @@ export class Checkers {
     }
 
     tryMove(source: number, destination: number): boolean {
-        let currentBoard = this.currentBoard;
+        let currentBoard = this.getCurrentBoard();
         let move = { source: source, destination: destination, player: currentBoard.player };
         let {success, board} = currentBoard.tryMove(move);
 
@@ -77,7 +77,7 @@ export class Checkers {
     }
 
     private doComputerPlayerMove() {
-        this.searchResult = this.uctSearchService.search(this.currentBoard,
+        this.searchResult = this.uctSearchService.search(this.getCurrentBoard(),
             this.computeOptions.maxIterations,
             this.computeOptions.maxTime);
         if (this.searchResult.move) {

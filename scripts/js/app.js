@@ -1,5 +1,5 @@
 "use strict";
-const checkers_module_1 = require('./checkers-module');
+var checkers_module_1 = require('./checkers-module');
 exports.AppModule = angular.module('app', [checkers_module_1.CheckersModule.name, 'ngMaterial']);
 function configureThemes($mdThemingProvider) {
     $mdThemingProvider.theme('default')
@@ -18,28 +18,30 @@ function configureThemes($mdThemingProvider) {
         .dark();
 }
 exports.AppModule.config(configureThemes);
-class AppController {
-    constructor(checkers, $mdSidenav, $scope) {
+var AppController = (function () {
+    function AppController(checkers, $mdSidenav, $scope) {
+        var _this = this;
         this.checkers = checkers;
         this.$mdSidenav = $mdSidenav;
         this.$scope = $scope;
         this.computeOptions = checkers.computeOptions;
-        $scope.$watchCollection(() => this.computeOptions, (newValue, oldValue) => {
+        $scope.$watchCollection(function () { return _this.computeOptions; }, function (newValue, oldValue) {
             checkers.computeOptions = newValue;
-            this.isSettingsDirty = !!oldValue;
+            _this.isSettingsDirty = !!oldValue;
         });
-        $scope.$watch(() => this.isSidenavOpen, (newValue, oldValue) => {
-            if (!newValue && oldValue && this.isSettingsDirty) {
-                this.checkers.reset();
+        $scope.$watch(function () { return _this.isSidenavOpen; }, function (newValue, oldValue) {
+            if (!newValue && oldValue && _this.isSettingsDirty) {
+                _this.checkers.reset();
             }
-            this.isSettingsDirty = false;
+            _this.isSettingsDirty = false;
         });
     }
-    toggleMenu() {
+    AppController.prototype.toggleMenu = function () {
         this.$mdSidenav('left').toggle();
-    }
-    restart() {
+    };
+    AppController.prototype.restart = function () {
         this.checkers.reset();
-    }
-}
+    };
+    return AppController;
+}());
 exports.AppModule.controller('AppController', AppController);

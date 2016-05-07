@@ -59,7 +59,7 @@ class Node {
      * Wheter all moves have been tried.
      * @retun True if all moves have been tried. False otherwise.
      */
-    get isfullyExpanded(): boolean {
+    isfullyExpanded(): boolean {
         return this.validMoves.getSize() == 0;
     }
     
@@ -130,7 +130,7 @@ export class UctSearchService {
     
     private treePolicy(node:Node, state:GameState): Node {
         while(!node.isTerminal) {
-            if (!node.isfullyExpanded) {
+            if (!node.isfullyExpanded()) {
                 return this.expand(node);
             } else {
                 return this.bestChild(node, C);
