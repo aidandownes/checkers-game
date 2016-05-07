@@ -1,4 +1,5 @@
-node_modules*
-typings*
-bower_components*
-scripts*
+node_modules/**/**
+typings/**/**
+bower_components/**/**
+scripts/**/**
+styles/**/**

@@ -7,6 +7,10 @@ $break-big: 960px;
 
 $menu-width: $space-large + $space-xs;
 
+[ng\:cloak], [ng-cloak], [data-ng-cloak], [x-ng-cloak], .ng-cloak, .x-ng-cloak {
+  display: none !important;
+}
+
 #cb-mcts-stats {
     // matches line height of probabilty string
     height: 56px;
