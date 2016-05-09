@@ -2,6 +2,7 @@ import {Checkers} from './checkers-service';
 import {Bitboard, SQUARE_COUNT} from './checkers-bitboard';
 import {Player} from './game-model';
 import {Arrays} from './collections';
+import * as asserts from './assert';
 
 const ROW_LENGTH = 8;
 const COLUMN_LENGTH = 8;
@@ -67,7 +68,7 @@ class CheckersBoardController {
     playableSquares: number[];
 
     constructor(private checkers: Checkers, private $element: ng.IAugmentedJQuery,
-        private $window: ng.IWindowService, private $timeout: ng.ITimeoutService,
+        private $window: ng.IWindowService,
         private $log: ng.ILogService, private $scope: ng.IScope, private $q: ng.IQService) {
         this.canvasElement = <HTMLCanvasElement>$element[0].querySelector('canvas');
         this.canvas = angular.element(this.canvasElement);
@@ -111,7 +112,7 @@ class CheckersBoardController {
     private resize() {
         const width = this.$element.width();
         const height = this.$element.height();
-
+        
         if (width > height) {
             this.size = height;
         } else {
@@ -119,13 +120,16 @@ class CheckersBoardController {
         }
 
         this.squareSize = this.size / ROW_LENGTH;
+        
 
         // Resize the canvas;
         this.canvasElement.width = this.size;
         this.canvasElement.height = this.size;
 
         // Redraw board.
-        this.render();
+        if (width != 0 && height != 0) {
+            this.render();    
+        }
     }
 
     private handleMouseDown(ev: JQueryEventObject) {
@@ -195,17 +199,21 @@ class CheckersBoardController {
 
     private drawPiece(point: Point, player: Player, isKing: boolean, translation?: Point) {
         this.spritesPromise.then(img => {
-            let sourceX = isKing ? (2 * this.spriteSize) : 0;
+            let sourceX = isKing ? (2 * 50) : 0;
             if (player == Player.One) {
-                sourceX += this.spriteSize;
+                sourceX += 50;
             }
-
-            // Use to adjust sprite image position. Should really fix sprite.
-            let spriteAdjust = new Point(2, 2);
-            let drawPoint = point.add(spriteAdjust);
+            
+            let drawPoint = point;
+            
             if (translation) {
                 drawPoint = drawPoint.subtract(translation);
             }
+            
+            asserts.assert(img.width >= sourceX + this.spriteSize, 'Attempting to access outside sprite region');
+            asserts.assert(img.height >= 0 + this.spriteSize, 'Attempting to access outside sprite region');
+            asserts.assert(this.canvasElement.width >= drawPoint.x + this.squareSize, 'Drawing outside canvas');
+            asserts.assert(this.canvasElement.height >= drawPoint.y + this.squareSize, 'Drawing outside canvas');
 
             this.ctx.drawImage(img, sourceX, 0, this.spriteSize, this.spriteSize,
                 drawPoint.x, drawPoint.y, this.squareSize, this.squareSize);

@@ -90,27 +90,27 @@
         </filter>
     </defs>
     <g id="Page-1" stroke="none" stroke-width="1" fill="none" fill-rule="evenodd">
-        <g id="Group" transform="translate(-4.000000, -4.000000)">
-            <g id="Group-2" transform="translate(55.000000, 4.500000)" fill="#FFFFFF">
-                <circle id="Oval-3" stroke="#000000" filter="url(#filter-1)" cx="22.5" cy="22.5" r="22.5"></circle>
-                <circle id="Oval-3-Copy" stroke="#979797" filter="url(#filter-2)" cx="22.725" cy="22.725" r="19.125"></circle>
-            </g>
-            <g id="Group-3" transform="translate(5.000000, 4.500000)" fill="#544F4F">
+        <g id="Group" transform="translate(1, 0.5)">
+            <g id="Group-3" fill="#544F4F">
                 <circle id="Oval-3" stroke="#000000" filter="url(#filter-3)" cx="22.5" cy="22.5" r="22.5"></circle>
                 <circle id="Oval-3-Copy" stroke="#979797" filter="url(#filter-4)" cx="22.725" cy="22.725" r="19.125"></circle>
             </g>
-            <g id="Group-2" transform="translate(155.000000, 4.500000)">
-                <circle id="Oval-3" stroke="#000000" fill="#FFFFFF" filter="url(#filter-5)" cx="22.5" cy="22.5" r="22.5"></circle>
-                <circle id="Oval-3-Copy" stroke="#979797" fill="#FFFFFF" filter="url(#filter-6)" cx="22.725" cy="22.725" r="19.125"></circle>
-                <text id="♔" fill-opacity="0.613224638" fill="#000000" font-family="AppleSymbols, Apple Symbols" font-size="25.8700008" font-weight="normal">
-                    <tspan x="13.5" y="31.5">♔</tspan>
-                </text>
+            <g id="Group-2" transform="translate(50.000000, 0.0)" fill="#FFFFFF">
+                <circle id="Oval-3" stroke="#000000" filter="url(#filter-1)" cx="22.5" cy="22.5" r="22.5"></circle>
+                <circle id="Oval-3-Copy" stroke="#979797" filter="url(#filter-2)" cx="22.725" cy="22.725" r="19.125"></circle>
             </g>
-            <g id="Group-3" transform="translate(105.000000, 4.500000)">
+            <g id="Group-3" transform="translate(100.000000, 0.0)">
                 <circle id="Oval-3" stroke="#000000" fill="#544F4F" filter="url(#filter-7)" cx="22.5" cy="22.5" r="22.5"></circle>
                 <circle id="Oval-3-Copy" stroke="#979797" fill="#544F4F" filter="url(#filter-8)" cx="22.725" cy="22.725" r="19.125"></circle>
                 <text id="♔" fill-opacity="0.620867301" fill="#FFFFFF" font-family="AppleSymbols, Apple Symbols" font-size="25.8709091" font-weight="normal">
                     <tspan x="13" y="31" fill="#000000">♔</tspan>
+                </text>
+            </g>
+            <g id="Group-2" transform="translate(150.000000, 0.0)">
+                <circle id="Oval-3" stroke="#000000" fill="#FFFFFF" filter="url(#filter-5)" cx="22.5" cy="22.5" r="22.5"></circle>
+                <circle id="Oval-3-Copy" stroke="#979797" fill="#FFFFFF" filter="url(#filter-6)" cx="22.725" cy="22.725" r="19.125"></circle>
+                <text id="♔" fill-opacity="0.613224638" fill="#000000" font-family="AppleSymbols, Apple Symbols" font-size="25.8700008" font-weight="normal">
+                    <tspan x="13.5" y="31.5">♔</tspan>
                 </text>
             </g>
         </g>

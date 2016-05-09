@@ -508,6 +508,7 @@ exports.Bitboard = Bitboard;
 var checkers_bitboard_1 = require('./checkers-bitboard');
 var game_model_1 = require('./game-model');
 var collections_1 = require('./collections');
+var asserts = require('./assert');
 var ROW_LENGTH = 8;
 var COLUMN_LENGTH = 8;
 var DraggingClass = 'cb-dragging';
@@ -547,12 +548,11 @@ function toSquare(position, squareSize) {
     return collections_1.Arrays.findIndex(BoardSquareArray, function (bs) { return bs.column == column && bs.row == row; });
 }
 var CheckersBoardController = (function () {
-    function CheckersBoardController(checkers, $element, $window, $timeout, $log, $scope, $q) {
+    function CheckersBoardController(checkers, $element, $window, $log, $scope, $q) {
         var _this = this;
         this.checkers = checkers;
         this.$element = $element;
         this.$window = $window;
-        this.$timeout = $timeout;
         this.$log = $log;
         this.$scope = $scope;
         this.$q = $q;
@@ -600,7 +600,9 @@ var CheckersBoardController = (function () {
         this.squareSize = this.size / ROW_LENGTH;
         this.canvasElement.width = this.size;
         this.canvasElement.height = this.size;
-        this.render();
+        if (width != 0 && height != 0) {
+            this.render();
+        }
     };
     CheckersBoardController.prototype.handleMouseDown = function (ev) {
         var p = this.getMousePoint(ev);
@@ -654,15 +656,18 @@ var CheckersBoardController = (function () {
     CheckersBoardController.prototype.drawPiece = function (point, player, isKing, translation) {
         var _this = this;
         this.spritesPromise.then(function (img) {
-            var sourceX = isKing ? (2 * _this.spriteSize) : 0;
+            var sourceX = isKing ? (2 * 50) : 0;
             if (player == game_model_1.Player.One) {
-                sourceX += _this.spriteSize;
+                sourceX += 50;
             }
-            var spriteAdjust = new Point(2, 2);
-            var drawPoint = point.add(spriteAdjust);
+            var drawPoint = point;
             if (translation) {
                 drawPoint = drawPoint.subtract(translation);
             }
+            asserts.assert(img.width >= sourceX + _this.spriteSize, 'Attempting to access outside sprite region');
+            asserts.assert(img.height >= 0 + _this.spriteSize, 'Attempting to access outside sprite region');
+            asserts.assert(_this.canvasElement.width >= drawPoint.x + _this.squareSize, 'Drawing outside canvas');
+            asserts.assert(_this.canvasElement.height >= drawPoint.y + _this.squareSize, 'Drawing outside canvas');
             _this.ctx.drawImage(img, sourceX, 0, _this.spriteSize, _this.spriteSize, drawPoint.x, drawPoint.y, _this.squareSize, _this.squareSize);
         });
     };
@@ -720,7 +725,7 @@ exports.CheckersBoard = {
     controller: CheckersBoardController
 };
 
-},{"./checkers-bitboard":3,"./collections":9,"./game-model":10}],5:[function(require,module,exports){
+},{"./assert":2,"./checkers-bitboard":3,"./collections":9,"./game-model":10}],5:[function(require,module,exports){
 "use strict";
 var game_model_1 = require('./game-model');
 var GameStatsController = (function () {
