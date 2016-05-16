@@ -1,6 +1,6 @@
 /// <reference path="../typings/browser.d.ts" />
 import {CheckersModule} from './checkers-module';
-import {Checkers, ComputeOptions} from './checkers-service';
+import {Checkers, ComputeOptions, Player} from './checkers-service';
 
 export const AppModule = angular.module('app', [CheckersModule.name, 'ngMaterial']);
 
@@ -35,7 +35,7 @@ class AppController {
     
     constructor(private checkers: Checkers, 
             private $mdSidenav: ng.material.ISidenavService,
-            private $scope: ng.IScope) {
+            private $scope: ng.IScope, private $mdDialog: ng.material.IDialogService) {
         this.computeOptions = checkers.computeOptions;
         
         $scope.$watchCollection(() => this.computeOptions, (newValue, oldValue) => {
@@ -50,6 +50,28 @@ class AppController {
             }
             this.isSettingsDirty = false;
         });
+        
+        // Check for new winner
+        $scope.$watch(() => this.checkers.getWinner(), this.onWinner.bind(this));
+    }
+    
+    onWinner(player: Player) {
+        if (player == this.checkers.humanPlayer) {
+            this.showGameOverDialog(true);  
+        } else if (player == this.checkers.computerPlayer) {
+            this.showGameOverDialog(false);  
+        }
+    }
+    
+    showGameOverDialog(winner:boolean) {
+        var confirmDetails = this.$mdDialog.confirm()
+            .title('Game Over')
+            .textContent(winner ? 'You won!!' : 'You lost ?!!')
+            .ariaLabel('Game over')
+            .ok('New Game');
+        this.$mdDialog.show(confirmDetails).then(() => {
+            this.restart();
+        });    
     }
     
     toggleMenu(){

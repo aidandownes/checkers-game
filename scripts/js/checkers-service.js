@@ -3,6 +3,8 @@ var checkers_bitboard_1 = require('./checkers-bitboard');
 var game_model_1 = require('./game-model');
 var uct_1 = require('./uct');
 exports.UctSearchService = uct_1.UctSearchService;
+var game_model_2 = require('./game-model');
+exports.Player = game_model_2.Player;
 var DEFAULT_MAX_TIME_MS = 500;
 var DEFAULT_MAX_ITERATIONS = 10000;
 var Checkers = (function () {
@@ -22,6 +24,7 @@ var Checkers = (function () {
         this.boards.push(new checkers_bitboard_1.Bitboard());
         this.startTime = (new Date()).getTime();
         this.searchResult = null;
+        this.lastMove = null;
     };
     Checkers.prototype.getCurrentPlayer = function () {
         return this.getCurrentBoard().player;
@@ -55,6 +58,10 @@ var Checkers = (function () {
         else {
             return false;
         }
+    };
+    Checkers.prototype.getWinner = function () {
+        var board = this.getCurrentBoard();
+        return board.winner;
     };
     Checkers.prototype.doComputerPlayerMove = function () {
         this.searchResult = this.uctSearchService.search(this.getCurrentBoard(), this.computeOptions.maxIterations, this.computeOptions.maxTime);

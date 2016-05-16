@@ -4,6 +4,7 @@ import {UctSearchService, SearchResult} from './uct';
 import {Player} from './game-model';
 
 export {SearchResult, UctSearchService} from './uct';
+export {Player} from './game-model';
 
 const DEFAULT_MAX_TIME_MS = 500;
 const DEFAULT_MAX_ITERATIONS = 10000;
@@ -35,6 +36,7 @@ export class Checkers {
         this.boards.push(new Bitboard());
         this.startTime = (new Date()).getTime();
         this.searchResult = null;
+        this.lastMove = null;
     }
 
     getCurrentPlayer(): Player {
@@ -74,6 +76,11 @@ export class Checkers {
         } else {
             return false;
         }
+    }
+    
+    getWinner(): Player {
+        let board = this.getCurrentBoard();
+        return board.winner;
     }
 
     private doComputerPlayerMove() {

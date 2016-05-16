@@ -24,11 +24,11 @@ var Bitboard = (function () {
         this.kings = kings;
         this.player = player;
         if (this.player == game_model_1.Player.One) {
-            var canPlay = this.getJumpersWhite() || this.getHoppersWhite();
+            var canPlay = this.getJumpersWhite(this.whitePieces, this.blackPieces, this.kings) || this.getHoppersWhite();
             this.winner = canPlay ? game_model_1.Player.None : game_model_1.Player.Two;
         }
         else {
-            var canPlay = this.getJumpersBlack() || this.getHoppersBlack();
+            var canPlay = this.getJumpersBlack(this.whitePieces, this.blackPieces, this.kings) || this.getHoppersBlack();
             this.winner = canPlay ? game_model_1.Player.None : game_model_1.Player.One;
         }
         Asserts.assert((blackPieces & whitePieces) == 0);
@@ -51,8 +51,8 @@ var Bitboard = (function () {
         if (!this.moves) {
             this.moves = [];
             var jumpers = (this.player == game_model_1.Player.One) ?
-                this.getJumpersWhite() :
-                this.getJumpersBlack();
+                this.getJumpersWhite(this.whitePieces, this.blackPieces, this.kings) :
+                this.getJumpersBlack(this.whitePieces, this.blackPieces, this.kings);
             for (var i = 0; i < exports.SQUARE_COUNT; i++) {
                 if (S[i] & jumpers) {
                     Array.prototype.push.apply(this.moves, this.getJumpMoves(i));
@@ -203,9 +203,6 @@ var Bitboard = (function () {
         return movers;
     };
     Bitboard.prototype.getJumpersWhite = function (whitePieces, blackPieces, kings) {
-        whitePieces = whitePieces || this.whitePieces;
-        blackPieces = blackPieces || this.blackPieces;
-        kings = kings || this.kings;
         var notOccupied = ~(whitePieces | blackPieces);
         var kingPieces = whitePieces & kings;
         var movers = 0;
@@ -222,9 +219,6 @@ var Bitboard = (function () {
         return movers;
     };
     Bitboard.prototype.getJumpersBlack = function (whitePieces, blackPieces, kings) {
-        whitePieces = whitePieces || this.whitePieces;
-        blackPieces = blackPieces || this.blackPieces;
-        kings = kings || this.kings;
         var notOccupied = ~(whitePieces | blackPieces);
         var kingPieces = blackPieces & kings;
         var movers = 0;
@@ -382,8 +376,8 @@ var Bitboard = (function () {
             return failureResult;
         }
         var jumpers = this.player == game_model_1.Player.One ?
-            this.getJumpersWhite() :
-            this.getJumpersBlack();
+            this.getJumpersWhite(this.whitePieces, this.blackPieces, this.kings) :
+            this.getJumpersBlack(this.whitePieces, this.blackPieces, this.kings);
         if (jumpers) {
             var shouldJump = jumpers & sourceMask;
             if (shouldJump) {

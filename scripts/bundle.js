@@ -20,11 +20,12 @@ function configureThemes($mdThemingProvider) {
 }
 exports.AppModule.config(configureThemes);
 var AppController = (function () {
-    function AppController(checkers, $mdSidenav, $scope) {
+    function AppController(checkers, $mdSidenav, $scope, $mdDialog) {
         var _this = this;
         this.checkers = checkers;
         this.$mdSidenav = $mdSidenav;
         this.$scope = $scope;
+        this.$mdDialog = $mdDialog;
         this.computeOptions = checkers.computeOptions;
         $scope.$watchCollection(function () { return _this.computeOptions; }, function (newValue, oldValue) {
             checkers.computeOptions = newValue;
@@ -36,7 +37,27 @@ var AppController = (function () {
             }
             _this.isSettingsDirty = false;
         });
+        $scope.$watch(function () { return _this.checkers.getWinner(); }, this.onWinner.bind(this));
     }
+    AppController.prototype.onWinner = function (player) {
+        if (player == this.checkers.humanPlayer) {
+            this.showGameOverDialog(true);
+        }
+        else if (player == this.checkers.computerPlayer) {
+            this.showGameOverDialog(false);
+        }
+    };
+    AppController.prototype.showGameOverDialog = function (winner) {
+        var _this = this;
+        var confirmDetails = this.$mdDialog.confirm()
+            .title('Game Over')
+            .textContent(winner ? 'You won!!' : 'You lost ?!!')
+            .ariaLabel('Game over')
+            .ok('New Game');
+        this.$mdDialog.show(confirmDetails).then(function () {
+            _this.restart();
+        });
+    };
     AppController.prototype.toggleMenu = function () {
         this.$mdSidenav('left').toggle();
     };
@@ -95,11 +116,11 @@ var Bitboard = (function () {
         this.kings = kings;
         this.player = player;
         if (this.player == game_model_1.Player.One) {
-            var canPlay = this.getJumpersWhite() || this.getHoppersWhite();
+            var canPlay = this.getJumpersWhite(this.whitePieces, this.blackPieces, this.kings) || this.getHoppersWhite();
             this.winner = canPlay ? game_model_1.Player.None : game_model_1.Player.Two;
         }
         else {
-            var canPlay = this.getJumpersBlack() || this.getHoppersBlack();
+            var canPlay = this.getJumpersBlack(this.whitePieces, this.blackPieces, this.kings) || this.getHoppersBlack();
             this.winner = canPlay ? game_model_1.Player.None : game_model_1.Player.One;
         }
         Asserts.assert((blackPieces & whitePieces) == 0);
@@ -122,8 +143,8 @@ var Bitboard = (function () {
         if (!this.moves) {
             this.moves = [];
             var jumpers = (this.player == game_model_1.Player.One) ?
-                this.getJumpersWhite() :
-                this.getJumpersBlack();
+                this.getJumpersWhite(this.whitePieces, this.blackPieces, this.kings) :
+                this.getJumpersBlack(this.whitePieces, this.blackPieces, this.kings);
             for (var i = 0; i < exports.SQUARE_COUNT; i++) {
                 if (S[i] & jumpers) {
                     Array.prototype.push.apply(this.moves, this.getJumpMoves(i));
@@ -274,9 +295,6 @@ var Bitboard = (function () {
         return movers;
     };
     Bitboard.prototype.getJumpersWhite = function (whitePieces, blackPieces, kings) {
-        whitePieces = whitePieces || this.whitePieces;
-        blackPieces = blackPieces || this.blackPieces;
-        kings = kings || this.kings;
         var notOccupied = ~(whitePieces | blackPieces);
         var kingPieces = whitePieces & kings;
         var movers = 0;
@@ -293,9 +311,6 @@ var Bitboard = (function () {
         return movers;
     };
     Bitboard.prototype.getJumpersBlack = function (whitePieces, blackPieces, kings) {
-        whitePieces = whitePieces || this.whitePieces;
-        blackPieces = blackPieces || this.blackPieces;
-        kings = kings || this.kings;
         var notOccupied = ~(whitePieces | blackPieces);
         var kingPieces = blackPieces & kings;
         var movers = 0;
@@ -453,8 +468,8 @@ var Bitboard = (function () {
             return failureResult;
         }
         var jumpers = this.player == game_model_1.Player.One ?
-            this.getJumpersWhite() :
-            this.getJumpersBlack();
+            this.getJumpersWhite(this.whitePieces, this.blackPieces, this.kings) :
+            this.getJumpersBlack(this.whitePieces, this.blackPieces, this.kings);
         if (jumpers) {
             var shouldJump = jumpers & sourceMask;
             if (shouldJump) {
@@ -838,6 +853,8 @@ var checkers_bitboard_1 = require('./checkers-bitboard');
 var game_model_1 = require('./game-model');
 var uct_1 = require('./uct');
 exports.UctSearchService = uct_1.UctSearchService;
+var game_model_2 = require('./game-model');
+exports.Player = game_model_2.Player;
 var DEFAULT_MAX_TIME_MS = 500;
 var DEFAULT_MAX_ITERATIONS = 10000;
 var Checkers = (function () {
@@ -857,6 +874,7 @@ var Checkers = (function () {
         this.boards.push(new checkers_bitboard_1.Bitboard());
         this.startTime = (new Date()).getTime();
         this.searchResult = null;
+        this.lastMove = null;
     };
     Checkers.prototype.getCurrentPlayer = function () {
         return this.getCurrentBoard().player;
@@ -890,6 +908,10 @@ var Checkers = (function () {
         else {
             return false;
         }
+    };
+    Checkers.prototype.getWinner = function () {
+        var board = this.getCurrentBoard();
+        return board.winner;
     };
     Checkers.prototype.doComputerPlayerMove = function () {
         this.searchResult = this.uctSearchService.search(this.getCurrentBoard(), this.computeOptions.maxIterations, this.computeOptions.maxTime);
