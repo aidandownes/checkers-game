@@ -77,6 +77,21 @@ class CheckersBoardController {
         // Add event listeners
         this.canvas.on('mousedown', this.handleMouseDown.bind(this));
         this.canvas.on('mousemove', this.handleMouseMove.bind(this));
+        this.canvas.on('mouseup', this.handleMouseUp.bind(this));
+        
+        this.canvasElement.addEventListener('touchstart', e => {
+            let p = this.getTouchPoint(e);
+            this.startDrag(p);
+        });
+        
+        this.canvasElement.addEventListener('touchmove', e => {
+            let p = this.getTouchPoint(e);
+            this.updateDrag(p);
+        });
+        
+        this.canvasElement.addEventListener('touchend', e => {
+            this.endDrag(this.dragPosition);
+        });
 
         $scope.$watch(() => this.$element.width(), this.resize.bind(this));
         $scope.$watch(() => this.checkers.getCurrentBoard(), this.onBoardUpdated.bind(this));
@@ -131,29 +146,49 @@ class CheckersBoardController {
             this.render();    
         }
     }
-
-    private handleMouseDown(ev: JQueryEventObject) {
-        let p = this.getMousePoint(ev);
+    
+    private startDrag(p: Point) {
         let sourceSquare = toSquare(p, this.squareSize);
         let player = this.checkers.getCurrentBoard().getPlayerAtSquare(sourceSquare);
-
-        if (player == this.checkers.getCurrentBoard().player) {
+        
+         if (player == this.checkers.getCurrentBoard().player) {
             let squarePosition = toPosition(sourceSquare, this.squareSize);
 
             this.isDragging = true;
             this.dragTarget = sourceSquare;
             this.dragPosition = p;
             this.dragTranslation = p.subtract(squarePosition);
-
-            this.canvas.on('mouseup', this.handleMouseUp.bind(this));
             this.canvas.addClass(DraggingClass);
             this.canvas.removeClass(DragClass);
             this.render();
         }
     }
+    
+    private endDrag(p: Point) {
+        if (!this.isDragging) {
+            return;
+        }
+        
+        let destinationSquare = toSquare(p, this.squareSize);
 
-    private handleMouseMove(ev: JQueryEventObject) {
-        let p = this.getMousePoint(ev);
+        // Attempt move.
+        if (destinationSquare >= 0) {
+            this.checkers.tryMove(this.dragTarget, destinationSquare);
+        }
+
+        // Reset dragTarget information.
+        this.isDragging = false;
+        this.dragTarget = -1;
+        this.dragPosition = <Point>null;
+
+        // Remove drag css class
+        this.canvas.removeClass(DraggingClass);
+
+        // Redraw board.
+        this.render();
+    }
+    
+    private updateDrag(p: Point) {
         if (this.isDragging) {
             this.dragPosition = p;
             this.render();
@@ -167,34 +202,29 @@ class CheckersBoardController {
         }
     }
 
+    private handleMouseDown(ev: JQueryEventObject) {
+        this.startDrag(this.getMousePoint(ev));
+    }
+   
+    private handleMouseMove(ev: JQueryEventObject) {
+        this.updateDrag(this.getMousePoint(ev));
+    }
+
     private handleMouseUp(ev: JQueryEventObject) {
-        let p = this.getMousePoint(ev);
-        let destinationSquare = toSquare(p, this.squareSize);
-
-        // Attempt move.
-        if (destinationSquare >= 0) {
-            this.checkers.tryMove(this.dragTarget, destinationSquare);
-        }
-
-        // Reset dragTarget information.
-        this.isDragging = false;
-        this.dragTarget = -1;
-        this.dragPosition = <Point>null;
-
-        // Remove handlers for drag target.
-        this.canvas.off('mouseup');
-
-        // Remove drag css class
-        this.canvas.removeClass(DraggingClass);
-
-        // Redraw board.
-        this.render();
+        this.endDrag(this.getMousePoint(ev));
     }
 
     private getMousePoint(ev: JQueryEventObject): Point {
-        let rect = this.canvas[0].getBoundingClientRect();
+        let rect = this.canvasElement.getBoundingClientRect();
         // Get Mouse position in canvas coordinates.
         return new Point(ev.clientX - rect.left, ev.clientY - rect.top);
+    }
+    
+    private getTouchPoint(ev: TouchEvent): Point {
+        let rect = this.canvasElement.getBoundingClientRect();
+        let touches = ev.touches;
+        let touch = touches[0];
+        return new Point(touch.clientX - rect.left, touch.clientY - rect.top);
     }
 
     private drawPiece(point: Point, player: Player, isKing: boolean, translation?: Point) {

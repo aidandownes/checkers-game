@@ -55,6 +55,18 @@ var CheckersBoardController = (function () {
         this.ctx = this.canvasElement.getContext('2d');
         this.canvas.on('mousedown', this.handleMouseDown.bind(this));
         this.canvas.on('mousemove', this.handleMouseMove.bind(this));
+        this.canvas.on('mouseup', this.handleMouseUp.bind(this));
+        this.canvasElement.addEventListener('touchstart', function (e) {
+            var p = _this.getTouchPoint(e);
+            _this.startDrag(p);
+        });
+        this.canvasElement.addEventListener('touchmove', function (e) {
+            var p = _this.getTouchPoint(e);
+            _this.updateDrag(p);
+        });
+        this.canvasElement.addEventListener('touchend', function (e) {
+            _this.endDrag(_this.dragPosition);
+        });
         $scope.$watch(function () { return _this.$element.width(); }, this.resize.bind(this));
         $scope.$watch(function () { return _this.checkers.getCurrentBoard(); }, this.onBoardUpdated.bind(this));
     }
@@ -98,8 +110,7 @@ var CheckersBoardController = (function () {
             this.render();
         }
     };
-    CheckersBoardController.prototype.handleMouseDown = function (ev) {
-        var p = this.getMousePoint(ev);
+    CheckersBoardController.prototype.startDrag = function (p) {
         var sourceSquare = toSquare(p, this.squareSize);
         var player = this.checkers.getCurrentBoard().getPlayerAtSquare(sourceSquare);
         if (player == this.checkers.getCurrentBoard().player) {
@@ -108,14 +119,26 @@ var CheckersBoardController = (function () {
             this.dragTarget = sourceSquare;
             this.dragPosition = p;
             this.dragTranslation = p.subtract(squarePosition);
-            this.canvas.on('mouseup', this.handleMouseUp.bind(this));
             this.canvas.addClass(DraggingClass);
             this.canvas.removeClass(DragClass);
             this.render();
         }
     };
-    CheckersBoardController.prototype.handleMouseMove = function (ev) {
-        var p = this.getMousePoint(ev);
+    CheckersBoardController.prototype.endDrag = function (p) {
+        if (!this.isDragging) {
+            return;
+        }
+        var destinationSquare = toSquare(p, this.squareSize);
+        if (destinationSquare >= 0) {
+            this.checkers.tryMove(this.dragTarget, destinationSquare);
+        }
+        this.isDragging = false;
+        this.dragTarget = -1;
+        this.dragPosition = null;
+        this.canvas.removeClass(DraggingClass);
+        this.render();
+    };
+    CheckersBoardController.prototype.updateDrag = function (p) {
         if (this.isDragging) {
             this.dragPosition = p;
             this.render();
@@ -130,22 +153,24 @@ var CheckersBoardController = (function () {
             }
         }
     };
+    CheckersBoardController.prototype.handleMouseDown = function (ev) {
+        this.startDrag(this.getMousePoint(ev));
+    };
+    CheckersBoardController.prototype.handleMouseMove = function (ev) {
+        this.updateDrag(this.getMousePoint(ev));
+    };
     CheckersBoardController.prototype.handleMouseUp = function (ev) {
-        var p = this.getMousePoint(ev);
-        var destinationSquare = toSquare(p, this.squareSize);
-        if (destinationSquare >= 0) {
-            this.checkers.tryMove(this.dragTarget, destinationSquare);
-        }
-        this.isDragging = false;
-        this.dragTarget = -1;
-        this.dragPosition = null;
-        this.canvas.off('mouseup');
-        this.canvas.removeClass(DraggingClass);
-        this.render();
+        this.endDrag(this.getMousePoint(ev));
     };
     CheckersBoardController.prototype.getMousePoint = function (ev) {
-        var rect = this.canvas[0].getBoundingClientRect();
+        var rect = this.canvasElement.getBoundingClientRect();
         return new Point(ev.clientX - rect.left, ev.clientY - rect.top);
+    };
+    CheckersBoardController.prototype.getTouchPoint = function (ev) {
+        var rect = this.canvasElement.getBoundingClientRect();
+        var touches = ev.touches;
+        var touch = touches[0];
+        return new Point(touch.clientX - rect.left, touch.clientY - rect.top);
     };
     CheckersBoardController.prototype.drawPiece = function (point, player, isKing, translation) {
         var _this = this;
