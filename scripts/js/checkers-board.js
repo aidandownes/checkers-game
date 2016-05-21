@@ -3,6 +3,7 @@ var checkers_bitboard_1 = require('./checkers-bitboard');
 var game_model_1 = require('./game-model');
 var collections_1 = require('./collections');
 var asserts = require('./assert');
+var utils = require('./utils');
 var ROW_LENGTH = 8;
 var COLUMN_LENGTH = 8;
 var DraggingClass = 'cb-dragging';
@@ -146,7 +147,10 @@ var CheckersBoardController = (function () {
     };
     CheckersBoardController.prototype.updateDrag = function (p) {
         if (this.isDragging) {
-            this.dragPosition = p;
+            var position = p;
+            position.x = utils.clamp(position.x, 0 + this.dragTranslation.x, this.canvasElement.width - this.squareSize + this.dragTranslation.x);
+            position.y = utils.clamp(position.y, 0 + this.dragTranslation.y, this.canvasElement.height - this.squareSize + this.dragTranslation.y);
+            this.dragPosition = position;
             this.render();
         }
         else {

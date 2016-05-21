@@ -3,6 +3,7 @@ import {Bitboard, SQUARE_COUNT} from './checkers-bitboard';
 import {Player} from './game-model';
 import {Arrays} from './collections';
 import * as asserts from './assert';
+import * as utils from './utils'
 
 const ROW_LENGTH = 8;
 const COLUMN_LENGTH = 8;
@@ -196,7 +197,19 @@ class CheckersBoardController {
     
     private updateDrag(p: Point) {
         if (this.isDragging) {
-            this.dragPosition = p;
+            
+            let position = p;
+            position.x = utils.clamp(
+                position.x, 
+                0 + this.dragTranslation.x, 
+                this.canvasElement.width - this.squareSize + this.dragTranslation.x);
+            position.y = utils.clamp(
+                position.y,
+                0 + this.dragTranslation.y, 
+                this.canvasElement.height - this.squareSize + this.dragTranslation.y);
+            
+            
+            this.dragPosition = position;
             this.render();
         } else {
             let sourceSquare = toSquare(p, this.squareSize);
