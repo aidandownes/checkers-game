@@ -59,10 +59,16 @@ var CheckersBoardController = (function () {
         this.canvasElement.addEventListener('touchstart', function (e) {
             var p = _this.getTouchPoint(e);
             _this.startDrag(p);
+            if (_this.isDragging) {
+                e.preventDefault();
+            }
         });
         this.canvasElement.addEventListener('touchmove', function (e) {
             var p = _this.getTouchPoint(e);
             _this.updateDrag(p);
+            if (_this.isDragging) {
+                e.preventDefault();
+            }
         });
         this.canvasElement.addEventListener('touchend', function (e) {
             _this.endDrag(_this.dragPosition);

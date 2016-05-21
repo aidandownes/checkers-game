@@ -82,11 +82,17 @@ class CheckersBoardController {
         this.canvasElement.addEventListener('touchstart', e => {
             let p = this.getTouchPoint(e);
             this.startDrag(p);
+            if (this.isDragging) {
+                e.preventDefault();
+            }
         });
         
         this.canvasElement.addEventListener('touchmove', e => {
             let p = this.getTouchPoint(e);
             this.updateDrag(p);
+            if (this.isDragging) {
+                e.preventDefault();
+            }
         });
         
         this.canvasElement.addEventListener('touchend', e => {
